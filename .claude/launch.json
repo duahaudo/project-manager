@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "Next.js Dev Server",
+      "runtimeExecutable": "./scripts/dev.sh",
+      "runtimeArgs": ["-p", "9005"],
+      "port": 9005
+    }
+  ]
+}
