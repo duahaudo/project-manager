@@ -147,7 +147,7 @@ export function TicketForm({
     <div className="flex flex-col">
       <div className="grid grid-cols-1 gap-6 md:grid-cols-[1fr_280px]">
         {/* Main */}
-        <div className="space-y-4">
+        <div className="min-w-0 space-y-4">
           {isEdit && ticket && (
             <div className="flex items-center gap-3 text-sm text-zinc-500">
               <span className="font-mono">{ticket.key}</span>
@@ -193,7 +193,7 @@ export function TicketForm({
             ) : (
               <div
                 onClick={() => setDescMode("edit")}
-                className="min-h-[200px] cursor-text rounded border border-zinc-200 bg-white px-3 py-3 text-sm leading-relaxed text-zinc-800 [&_a]:text-indigo-600 [&_a]:underline [&_code]:rounded [&_code]:bg-zinc-100 [&_code]:px-1 [&_code]:py-0.5 [&_h1]:mt-2 [&_h1]:mb-2 [&_h1]:text-xl [&_h1]:font-semibold [&_h2]:mt-2 [&_h2]:mb-1 [&_h2]:text-lg [&_h2]:font-semibold [&_h3]:mt-2 [&_h3]:font-semibold [&_img]:my-2 [&_img]:max-w-full [&_img]:rounded [&_li]:my-0.5 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:my-2 [&_pre]:my-2 [&_pre]:rounded [&_pre]:bg-zinc-100 [&_pre]:p-3 [&_ul]:list-disc [&_ul]:pl-5"
+                className="min-h-[200px] cursor-text rounded border border-zinc-200 bg-white px-3 py-3 text-sm leading-relaxed text-zinc-800 [&_a]:text-indigo-600 [&_a]:underline [&_code]:rounded [&_code]:bg-zinc-100 [&_code]:px-1 [&_code]:py-0.5 [&_h1]:mt-2 [&_h1]:mb-2 [&_h1]:text-xl [&_h1]:font-semibold [&_h2]:mt-2 [&_h2]:mb-1 [&_h2]:text-lg [&_h2]:font-semibold [&_h3]:mt-2 [&_h3]:font-semibold [&_img]:my-2 [&_img]:max-w-full [&_img]:rounded [&_li]:my-0.5 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:my-2 [&_pre]:my-2 [&_pre]:overflow-x-auto [&_pre]:rounded [&_pre]:bg-zinc-100 [&_pre]:p-3 [&_ul]:list-disc [&_ul]:pl-5"
               >
                 {t.description ? (
                   <ReactMarkdown

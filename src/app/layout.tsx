@@ -15,6 +15,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Project Manager",
   description: "Local JIRA-lite for solo / AI-driven projects",
+  other: {
+    "darkreader-lock": "true",
+  },
 };
 
 export default function RootLayout({
