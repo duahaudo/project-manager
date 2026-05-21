@@ -191,13 +191,13 @@ export async function getChildTickets(parentId: string, parentType?: string) {
     return db
       .select()
       .from(schema.tickets)
-      .where(eq(schema.tickets.epicId, parentId))
+      .where(and(eq(schema.tickets.epicId, parentId), ne(schema.tickets.id, parentId)))
       .orderBy(asc(schema.tickets.rank));
   }
   return db
     .select()
     .from(schema.tickets)
-    .where(eq(schema.tickets.parentId, parentId))
+    .where(and(eq(schema.tickets.parentId, parentId), ne(schema.tickets.id, parentId)))
     .orderBy(asc(schema.tickets.rank));
 }
 

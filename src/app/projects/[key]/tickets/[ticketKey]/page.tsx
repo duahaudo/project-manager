@@ -24,7 +24,7 @@ export default async function TicketDetailPage({
     listAllTicketsByProject(project.id),
     listFieldValues(project.id),
     getParentTicket(ticket.parentId, ticket.epicId),
-    getChildTickets(ticket.id),
+    getChildTickets(ticket.id, ticket.type),
   ]);
 
   const ticketUrl = `/projects/${key}/tickets/${ticketKey}`;
