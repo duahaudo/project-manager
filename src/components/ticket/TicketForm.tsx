@@ -135,13 +135,13 @@ export function TicketForm({
     e.preventDefault();
     const blob = item.getAsFile();
     if (!blob) return;
+    const pos = e.currentTarget.selectionStart;
+    const currentDesc = t.description ?? "";
     const reader = new FileReader();
     reader.onload = () => {
       const dataUrl = String(reader.result);
       const md = `\n![pasted image](${dataUrl})\n`;
-      const ta = e.currentTarget;
-      const pos = ta.selectionStart;
-      const next = (t.description ?? "").slice(0, pos) + md + (t.description ?? "").slice(pos);
+      const next = currentDesc.slice(0, pos) + md + currentDesc.slice(pos);
       set("description", next);
     };
     reader.readAsDataURL(blob);
@@ -172,6 +172,7 @@ export function TicketForm({
             startDate: t.startDate || null,
             endDate: t.endDate || null,
             estimation: t.estimation,
+            parentId: t.parentId ?? undefined,
           });
         } else if (ticket) {
           await updateTicket({
@@ -277,9 +278,10 @@ export function TicketForm({
                   <ReactMarkdown
                     remarkPlugins={[remarkGfm]}
                     rehypePlugins={[rehypeRaw]}
+                    urlTransform={(url) => url}
                     components={{
                       a: (p) => <a {...p} target="_blank" rel="noopener noreferrer" className="text-indigo-600 underline" />,
-                      img: (p) => <img {...p} className="max-w-full rounded" />,
+                      img: ({ src, alt }) => src ? <img src={src} alt={alt ?? ""} className="max-w-full rounded" /> : null,
                     }}
                   >
                     {t.description}
