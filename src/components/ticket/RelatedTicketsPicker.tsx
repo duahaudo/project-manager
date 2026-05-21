@@ -69,23 +69,24 @@ export function RelatedTicketsPicker({
   return (
     <div className="space-y-2">
       {selected.length > 0 && (
-        <div className="flex flex-wrap gap-1">
+        <div className="flex flex-col gap-1">
           {selected.map((t) => (
             <span
               key={t.id}
-              className="inline-flex items-center gap-1 rounded bg-indigo-50 border border-indigo-200 px-2 py-0.5 text-xs"
+              className="flex items-center gap-1 rounded bg-indigo-50 border border-indigo-200 px-2 py-0.5 text-xs w-full"
             >
               <Link
                 href={`/projects/${projectKey}/tickets/${t.key}`}
-                className="font-mono text-indigo-600 hover:underline"
+                className="font-mono text-indigo-600 hover:underline shrink-0 whitespace-nowrap"
               >
                 {t.key}
               </Link>
-              <span className="text-zinc-600 truncate max-w-[120px]">{t.title}</span>
+              <span className="text-zinc-600 truncate flex-1 min-w-0">{t.title}</span>
+              <span className="rounded px-1 py-0 text-[10px] font-medium bg-zinc-100 text-zinc-500 border border-zinc-200 shrink-0 whitespace-nowrap">{t.status}</span>
               <button
                 type="button"
                 onClick={() => remove(t.id)}
-                className="text-zinc-400 hover:text-red-500 leading-none ml-0.5"
+                className="text-zinc-400 hover:text-red-500 leading-none ml-0.5 shrink-0"
                 aria-label="Remove"
               >
                 ×
