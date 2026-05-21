@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { TicketModal } from "./TicketModal";
 import type { Ticket } from "@/lib/db/schema";
 
@@ -32,6 +32,26 @@ export function ParentSection({
 }) {
   const [showDropdown, setShowDropdown] = useState(false);
   const [showTicketModal, setShowTicketModal] = useState(false);
+  const [search, setSearch] = useState("");
+  const searchRef = useRef<HTMLInputElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (showDropdown) {
+      setSearch("");
+      setTimeout(() => searchRef.current?.focus(), 0);
+    }
+  }, [showDropdown]);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setShowDropdown(false);
+      }
+    }
+    if (showDropdown) document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showDropdown]);
 
   if (currentTicket?.type === "epic") return null;
 
@@ -40,10 +60,19 @@ export function ParentSection({
     (t) => t.id !== currentTicket?.id && allowed.includes(t.type)
   );
 
-  function handleSelect(e: React.ChangeEvent<HTMLSelectElement>) {
-    onParentChange(e.target.value || null);
+  function handleSelect(id: string | null) {
+    onParentChange(id);
     setShowDropdown(false);
   }
+
+  const filtered = candidates.filter((t) => {
+    const q = search.toLowerCase();
+    return (
+      t.key.toLowerCase().includes(q) ||
+      t.title.toLowerCase().includes(q) ||
+      t.type.toLowerCase().includes(q)
+    );
+  });
 
   return (
     <div className="space-y-1">
@@ -89,22 +118,42 @@ export function ParentSection({
         )}
 
         {showDropdown && (
-          <div className="absolute top-full left-0 z-20 mt-1 w-72 rounded border border-zinc-200 bg-white shadow-lg">
-            <select
-              size={Math.min(candidates.length + 1, 8)}
-              value={parentTicket?.id ?? ""}
-              onChange={handleSelect}
-              className="w-full rounded px-2 py-1 text-sm text-zinc-900 outline-none"
-              autoFocus
-              onBlur={() => setShowDropdown(false)}
-            >
-              <option value="">— no parent —</option>
-              {candidates.map((t) => (
-                <option key={t.id} value={t.id}>
-                  [{t.type}] {t.key} – {t.title}
-                </option>
-              ))}
-            </select>
+          <div ref={dropdownRef} className="absolute top-full left-0 z-20 mt-1 w-80 rounded border border-zinc-200 bg-white shadow-lg">
+            <div className="p-1.5 border-b border-zinc-100">
+              <input
+                ref={searchRef}
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search tickets..."
+                className="w-full rounded border border-zinc-200 px-2 py-1 text-sm text-zinc-900 outline-none focus:border-indigo-400"
+              />
+            </div>
+            <div className="max-h-52 overflow-y-auto">
+              <button
+                type="button"
+                onMouseDown={() => handleSelect(null)}
+                className="w-full px-3 py-1.5 text-left text-sm text-zinc-500 hover:bg-zinc-50"
+              >
+                — no parent —
+              </button>
+              {filtered.length === 0 ? (
+                <div className="px-3 py-2 text-xs text-zinc-400">No results</div>
+              ) : (
+                filtered.map((t) => (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onMouseDown={() => handleSelect(t.id)}
+                    className={`w-full px-3 py-1.5 text-left text-sm hover:bg-indigo-50 ${parentTicket?.id === t.id ? "bg-indigo-50 font-medium" : "text-zinc-700"}`}
+                  >
+                    <span className="text-zinc-400 text-xs">[{t.type}]</span>{" "}
+                    <span className="font-mono text-indigo-700">{t.key}</span>{" "}
+                    <span className="text-zinc-600">– {t.title}</span>
+                  </button>
+                ))
+              )}
+            </div>
           </div>
         )}
       </div>
