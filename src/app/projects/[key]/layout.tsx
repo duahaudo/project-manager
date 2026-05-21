@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getProjectByKey } from "@/lib/actions/projects";
+import { RefreshButton } from "@/components/ui/RefreshButton";
 
 export default async function ProjectLayout({
   children,
@@ -25,19 +26,12 @@ export default async function ProjectLayout({
             <span className="font-mono text-indigo-600">{project.key}</span>{" "}
             <span className="text-zinc-400">·</span> {project.name}
           </h1>
-          <nav className="ml-auto flex gap-3 text-sm">
-            <Link href={`/projects/${project.key}/board`} className="hover:underline">
-              Board
-            </Link>
-            <Link href={`/projects/${project.key}/backlog`} className="hover:underline">
-              Backlog
-            </Link>
-            <Link href={`/projects/${project.key}/import`} className="hover:underline">
-              Import
-            </Link>
-            <Link href={`/api-docs`} className="hover:underline text-zinc-500">
-              API
-            </Link>
+          <nav className="ml-auto flex items-center gap-3 text-sm">
+            <RefreshButton />
+            <Link href={`/projects/${project.key}/board`} className="hover:underline">Board</Link>
+            <Link href={`/projects/${project.key}/backlog`} className="hover:underline">Backlog</Link>
+            <Link href={`/projects/${project.key}/import`} className="hover:underline">Import</Link>
+            <Link href={`/api-docs`} className="hover:underline text-zinc-500">API</Link>
           </nav>
         </div>
       </header>

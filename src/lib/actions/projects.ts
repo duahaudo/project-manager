@@ -1,6 +1,7 @@
 "use server";
 import { db, schema } from "@/lib/db/client";
-import { eq, ne, sql, asc } from "drizzle-orm";
+import { eq, ne, sql, asc, desc } from "drizzle-orm";
+import { midpoint, initialRank } from "@/lib/rank";
 import { revalidatePath } from "next/cache";
 import { uid } from "@/lib/utils";
 import { z } from "zod";
@@ -22,12 +23,16 @@ export async function createProject(input: z.infer<typeof ProjectSchema>) {
   if (data.isDefault && existing.length > 0) {
     await db.update(schema.projects).set({ isDefault: false });
   }
+  // Get last project rank
+  const lastProj = await db.select({ rank: schema.projects.rank }).from(schema.projects).orderBy(desc(schema.projects.rank)).limit(1);
+  const rank = lastProj[0] ? midpoint(lastProj[0].rank, null) : initialRank();
   await db.insert(schema.projects).values({
     id,
     key: data.key,
     name: data.name,
     description: data.description ?? null,
     isDefault: becomesDefault,
+    rank,
   });
   revalidatePath("/");
   return { id, key: data.key };
@@ -57,7 +62,25 @@ export async function getDefaultProject() {
 }
 
 export async function listProjects() {
-  return db.select().from(schema.projects).orderBy(schema.projects.createdAt);
+  return db.select().from(schema.projects).orderBy(asc(schema.projects.rank), asc(schema.projects.createdAt));
+}
+
+export async function reorderProject(input: {
+  id: string;
+  beforeId: string | null;
+  afterId: string | null;
+}) {
+  const [beforeRows, afterRows] = await Promise.all([
+    input.beforeId
+      ? db.select({ rank: schema.projects.rank }).from(schema.projects).where(eq(schema.projects.id, input.beforeId)).limit(1)
+      : Promise.resolve([]),
+    input.afterId
+      ? db.select({ rank: schema.projects.rank }).from(schema.projects).where(eq(schema.projects.id, input.afterId)).limit(1)
+      : Promise.resolve([]),
+  ]);
+  const rank = midpoint(beforeRows[0]?.rank ?? null, afterRows[0]?.rank ?? null);
+  await db.update(schema.projects).set({ rank }).where(eq(schema.projects.id, input.id));
+  revalidatePath("/");
 }
 
 export async function getProjectByKey(key: string) {

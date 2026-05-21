@@ -20,6 +20,8 @@ const TicketCreateSchema = z.object({
   fixVersion: z.string().optional(),
   milestone: z.string().optional(),
   phase: z.string().optional(),
+  parentId: z.string().nullable().optional(),
+  relatedIds: z.array(z.string()).optional(),
 });
 
 export async function createTicket(input: z.infer<typeof TicketCreateSchema>) {
@@ -61,6 +63,8 @@ export async function createTicket(input: z.infer<typeof TicketCreateSchema>) {
     fixVersion: data.fixVersion ?? null,
     milestone: data.milestone ?? null,
     phase: data.phase ?? null,
+    parentId: data.parentId ?? null,
+    relatedIds: data.relatedIds ?? [],
     rank,
   });
   await db
@@ -88,6 +92,8 @@ const TicketUpdateSchema = z.object({
   milestone: z.string().nullable().optional(),
   phase: z.string().nullable().optional(),
   components: z.array(z.string()).optional(),
+  parentId: z.string().nullable().optional(),
+  relatedIds: z.array(z.string()).optional(),
 });
 
 export async function updateTicket(input: z.infer<typeof TicketUpdateSchema>) {
@@ -138,6 +144,7 @@ export async function moveTicket(input: {
   if (t[0]) {
     const projectKey = t[0].key.split("-").slice(0, -1).join("-");
     revalidatePath(`/projects/${projectKey}/board`);
+    revalidatePath(`/projects/${projectKey}/backlog`);
   }
 }
 

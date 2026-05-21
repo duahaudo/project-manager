@@ -69,7 +69,7 @@ export default async function BoardPage({
       <div className="mb-4">
         <Filters defs={defs} />
       </div>
-      <BoardClient project={project} tickets={filtered} fieldValues={fieldValues} />
+      <BoardClient project={project} tickets={filtered} fieldValues={fieldValues} allTickets={all} />
     </div>
   );
 }

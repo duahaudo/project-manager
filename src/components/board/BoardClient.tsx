@@ -29,10 +29,12 @@ export function BoardClient({
   project,
   tickets,
   fieldValues,
+  allTickets,
 }: {
   project: Project;
   tickets: Ticket[];
   fieldValues: FieldValues;
+  allTickets: Ticket[];
 }) {
   const [open, setOpen] = useState<OpenState>(null);
   const sp = useSearchParams();
@@ -78,6 +80,7 @@ export function BoardClient({
           projectKey={project.key}
           statuses={project.statuses}
           fieldValues={fieldValues}
+          allTickets={allTickets}
           onClose={close}
         />
       )}

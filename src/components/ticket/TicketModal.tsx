@@ -2,6 +2,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { TicketForm } from "./TicketForm";
+import { CopyLinkButton } from "./CopyLinkButton";
 import type { Ticket } from "@/lib/db/schema";
 
 type FieldValues = { phase: string[]; milestone: string[]; sprint: string[]; fixVersion: string[] };
@@ -13,6 +14,7 @@ export function TicketModal({
   projectKey,
   statuses,
   fieldValues,
+  allTickets,
   onClose,
 }: {
   mode: "create" | "edit";
@@ -21,6 +23,7 @@ export function TicketModal({
   projectKey: string;
   statuses: string[];
   fieldValues: FieldValues;
+  allTickets?: Ticket[];
   onClose: () => void;
 }) {
   const router = useRouter();
@@ -52,9 +55,14 @@ export function TicketModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="sticky top-0 z-10 flex items-center justify-between rounded-t-lg border-b border-zinc-200 bg-white px-6 py-3">
-          <h2 className="text-base font-semibold text-zinc-900">
-            {mode === "create" ? "New Ticket" : `Edit ${ticket?.key}`}
-          </h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-base font-semibold text-zinc-900">
+              {mode === "create" ? "New Ticket" : `Edit ${ticket?.key}`}
+            </h2>
+            {mode === "edit" && ticket && (
+              <CopyLinkButton path={`/projects/${projectKey}/tickets/${ticket.key}`} />
+            )}
+          </div>
           <button
             onClick={onClose}
             className="rounded p-1 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"
@@ -74,6 +82,7 @@ export function TicketModal({
             projectKey={projectKey}
             statuses={statuses}
             fieldValues={fieldValues}
+            allTickets={allTickets}
             onClose={onClose}
             onChanged={() => router.refresh()}
           />

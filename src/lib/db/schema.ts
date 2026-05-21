@@ -12,6 +12,7 @@ export const projects = sqliteTable("projects", {
     .default(sql`'["Backlog","To Do","In Progress","In Review","Done","Cancelled"]'`),
   ticketCounter: integer("ticket_counter").notNull().default(0),
   isDefault: integer("is_default", { mode: "boolean" }).notNull().default(false),
+  rank: text("rank").notNull().default(""),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .default(sql`(unixepoch())`),
@@ -39,6 +40,10 @@ export const tickets = sqliteTable("tickets", {
     .references(() => projects.id, { onDelete: "cascade" }),
   epicId: text("epic_id").references(() => epics.id, { onDelete: "set null" }),
   parentId: text("parent_id"),
+  relatedIds: text("related_ids", { mode: "json" })
+    .notNull()
+    .$type<string[]>()
+    .default(sql`'[]'`),
   title: text("title").notNull(),
   description: text("description"),
   type: text("type").notNull().default("task"), // story|bug|task|epic

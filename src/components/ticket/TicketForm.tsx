@@ -7,6 +7,7 @@ import { createTicket, updateTicket, deleteTicket } from "@/lib/actions/tickets"
 import type { Ticket } from "@/lib/db/schema";
 import { MarkdownEditor } from "./MarkdownEditor";
 import { Combobox } from "@/components/ui/Combobox";
+import { RelatedTicketsPicker } from "./RelatedTicketsPicker";
 
 type FieldValues = { phase: string[]; milestone: string[]; sprint: string[]; fixVersion: string[] };
 
@@ -14,7 +15,7 @@ type Draft = Pick<
   Ticket,
   | "title" | "description" | "type" | "priority" | "status"
   | "phase" | "milestone" | "sprint" | "fixVersion" | "storyPoints"
->;
+> & { relatedIds: string[] };
 
 export function TicketForm({
   mode,
@@ -23,8 +24,10 @@ export function TicketForm({
   projectKey,
   statuses,
   fieldValues,
+  allTickets,
   onClose,
   onChanged,
+  onSaved,
 }: {
   mode: "create" | "edit";
   ticket: Ticket | null;
@@ -32,8 +35,10 @@ export function TicketForm({
   projectKey: string;
   statuses: string[];
   fieldValues: FieldValues;
+  allTickets?: Ticket[];
   onClose: () => void;
   onChanged?: () => void;
+  onSaved?: () => void;
 }) {
   const initial: Draft = ticket
     ? {
@@ -47,6 +52,7 @@ export function TicketForm({
         sprint: ticket.sprint,
         fixVersion: ticket.fixVersion,
         storyPoints: ticket.storyPoints,
+        relatedIds: ticket.relatedIds ?? [],
       }
     : {
         title: "",
@@ -59,6 +65,7 @@ export function TicketForm({
         sprint: null,
         fixVersion: null,
         storyPoints: null,
+        relatedIds: [],
       };
 
   const [t, setT] = useState<Draft>(initial);
@@ -109,6 +116,7 @@ export function TicketForm({
             sprint: t.sprint ?? undefined,
             fixVersion: t.fixVersion ?? undefined,
             storyPoints: t.storyPoints ?? undefined,
+            relatedIds: t.relatedIds,
           });
         } else if (ticket) {
           await updateTicket({
@@ -123,10 +131,15 @@ export function TicketForm({
             sprint: t.sprint,
             fixVersion: t.fixVersion,
             storyPoints: t.storyPoints,
+            relatedIds: t.relatedIds,
           });
         }
-        onChanged?.();
-        onClose();
+        if (onSaved) {
+          onSaved();
+        } else {
+          onChanged?.();
+          onClose();
+        }
       } catch (e: any) {
         setError(e?.message ?? "Failed to save");
       }
@@ -287,6 +300,17 @@ export function TicketForm({
               className="w-full rounded border border-zinc-300 bg-white px-2 py-1 text-zinc-900"
             />
           </Field>
+          {allTickets && allTickets.length > 0 && (
+            <Field label="Relates To">
+              <RelatedTicketsPicker
+                value={t.relatedIds}
+                onChange={(ids) => set("relatedIds", ids)}
+                allTickets={allTickets}
+                currentTicketId={ticket?.id}
+                projectKey={projectKey}
+              />
+            </Field>
+          )}
           <Field label="Story Points">
             <input
               type="number"
