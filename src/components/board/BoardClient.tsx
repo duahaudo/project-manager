@@ -28,14 +28,17 @@ export function BoardClient({
   tickets,
   fieldValues,
   allTickets,
+  initialSearch = "",
 }: {
   project: Project;
   tickets: Ticket[];
   fieldValues: FieldValues;
   allTickets: Ticket[];
+  initialSearch?: string;
 }) {
   const [open, setOpen] = useState<OpenState>(null);
   const [hiddenStatuses, setHiddenStatuses] = useState<string[]>([]);
+  const [search, setSearch] = useState(initialSearch);
   const sp = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
@@ -76,9 +79,32 @@ export function BoardClient({
     });
   }
 
+  function handleSearch(e: React.FormEvent) {
+    e.preventDefault();
+    const next = new URLSearchParams(sp.toString());
+    if (search) next.set("q", search);
+    else next.delete("q");
+    router.push(`${pathname}?${next.toString()}`);
+  }
+
   return (
     <div className="flex h-full flex-col">
-      <div className="mb-3 flex shrink-0 items-center">
+      <div className="mb-3 flex shrink-0 items-center gap-2 flex-wrap">
+        <form onSubmit={handleSearch} className="flex items-center gap-1">
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search title or key…"
+            className="w-48 rounded border border-zinc-300 bg-white px-2 py-1 text-sm text-zinc-900 placeholder:text-zinc-400"
+          />
+          <button
+            type="submit"
+            className="rounded border border-zinc-300 bg-white px-2 py-1 text-sm text-zinc-700 hover:bg-zinc-100"
+          >
+            Search
+          </button>
+        </form>
         <ColumnToggle
           statuses={project.statuses}
           hidden={hiddenStatuses}

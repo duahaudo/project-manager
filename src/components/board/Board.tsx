@@ -123,9 +123,8 @@ export function Board({
     if (!activeTicket) return;
 
     const targetStatus = activeTicket.status;
-    const col = tickets
-      .filter((t) => t.status === targetStatus)
-      .sort((a, b) => (a.rank < b.rank ? -1 : 1));
+    // Do NOT sort by rank here — optimistic state from onDragOver already has correct visual order
+    const col = tickets.filter((t) => t.status === targetStatus);
     const idx = col.findIndex((t) => t.id === activeTicket.id);
     const before = col[idx - 1] ?? null;
     const after = col[idx + 1] ?? null;

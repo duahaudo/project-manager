@@ -26,6 +26,7 @@ const InputSchema = z.object({
   priority: z.enum(["lowest", "low", "med", "high", "highest"]).optional(),
   status: z.string().optional(),
   epicId: z.string().optional(),
+  parentId: z.string().optional(),
   storyPoints: z.number().int().optional(),
   labels: z.array(z.string()).optional(),
   sprint: z.string().optional(),

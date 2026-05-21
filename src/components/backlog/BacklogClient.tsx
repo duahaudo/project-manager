@@ -40,20 +40,22 @@ function SortableRow({ ticket, projectKey }: { ticket: Ticket; projectKey: strin
       >
         ⠿
       </td>
-      <td className="py-2 font-mono">
+      <td className="py-2 px-3 font-mono whitespace-nowrap">
         <div className="flex items-center gap-1">
-          <Link href={`/projects/${projectKey}/tickets/${ticket.key}?from=backlog`} className="text-indigo-600">
+          <Link href={`/projects/${projectKey}/tickets/${ticket.key}?from=backlog`} className="text-indigo-600 whitespace-nowrap">
             {ticket.key}
           </Link>
           <CopyLinkButton path={`/projects/${projectKey}/tickets/${ticket.key}`} />
         </div>
       </td>
-      <td>{ticket.title}</td>
-      <td>{ticket.type}</td>
-      <td>{ticket.status}</td>
-      <td>{ticket.priority}</td>
-      <td>{ticket.phase ?? "—"}</td>
-      <td>{ticket.milestone ?? "—"}</td>
+      <td className="px-3 max-w-[260px]">
+        <span className="block truncate" title={ticket.title}>{ticket.title}</span>
+      </td>
+      <td className="px-3 whitespace-nowrap">{ticket.type}</td>
+      <td className="px-3 whitespace-nowrap">{ticket.status}</td>
+      <td className="px-3 whitespace-nowrap">{ticket.priority}</td>
+      <td className="px-3 whitespace-nowrap">{ticket.phase ?? "—"}</td>
+      <td className="px-3 whitespace-nowrap">{ticket.milestone ?? "—"}</td>
     </tr>
   );
 }
@@ -89,19 +91,32 @@ export function BacklogClient({
   const sp = useSearchParams();
 
   const filtered = useMemo(() => {
+    function getVals(key: string): string[] {
+      const v = sp.get(key);
+      if (!v) return [];
+      return v.split(",").filter(Boolean);
+    }
     return tickets.filter((t) => {
-      const f = Object.fromEntries(sp.entries());
-      if (f.epic && (t.epicId ?? "") !== f.epic) return false;
-      if (f.phase && (t.phase ?? "") !== f.phase) return false;
-      if (f.milestone && (t.milestone ?? "") !== f.milestone) return false;
-      if (f.sprint && (t.sprint ?? "") !== f.sprint) return false;
-      if (f.fixVersion && (t.fixVersion ?? "") !== f.fixVersion) return false;
-      if (f.status && t.status !== f.status) return false;
-      if (f.priority && t.priority !== f.priority) return false;
-      if (f.type && t.type !== f.type) return false;
-      if (f.q) {
-        const q = f.q.toLowerCase();
-        if (!t.title.toLowerCase().includes(q) && !t.key.toLowerCase().includes(q)) return false;
+      const epics = getVals("epic");
+      const phases = getVals("phase");
+      const milestones = getVals("milestone");
+      const sprints = getVals("sprint");
+      const fixVersions = getVals("fixVersion");
+      const statuses = getVals("status");
+      const priorities = getVals("priority");
+      const types = getVals("type");
+      if (epics.length && !epics.includes(t.epicId ?? "")) return false;
+      if (phases.length && !phases.includes(t.phase ?? "")) return false;
+      if (milestones.length && !milestones.includes(t.milestone ?? "")) return false;
+      if (sprints.length && !sprints.includes(t.sprint ?? "")) return false;
+      if (fixVersions.length && !fixVersions.includes(t.fixVersion ?? "")) return false;
+      if (statuses.length && !statuses.includes(t.status)) return false;
+      if (priorities.length && !priorities.includes(t.priority ?? "")) return false;
+      if (types.length && !types.includes(t.type)) return false;
+      const q = sp.get("q");
+      if (q) {
+        const ql = q.toLowerCase();
+        if (!t.title.toLowerCase().includes(ql) && !t.key.toLowerCase().includes(ql)) return false;
       }
       return true;
     });
@@ -163,7 +178,7 @@ export function BacklogClient({
             Search
           </button>
         </form>
-        <Filters defs={filterDefs} />
+        <Filters defs={filterDefs} storageKey={`backlog-filters-${projectKey}`} />
         <div className="text-xs text-zinc-500">{filtered.length} of {tickets.length} tickets</div>
       </div>
       <div className="overflow-x-auto">
@@ -179,13 +194,13 @@ export function BacklogClient({
               <thead className="border-b text-left text-zinc-500">
                 <tr>
                   <th className="py-2 w-8"></th>
-                  <th className="py-2">Key</th>
-                  <th>Title</th>
-                  <th>Type</th>
-                  <th>Status</th>
-                  <th>Priority</th>
-                  <th>Phase</th>
-                  <th>Milestone</th>
+                  <th className="py-2 px-3 whitespace-nowrap">Key</th>
+                  <th className="px-3">Title</th>
+                  <th className="px-3 whitespace-nowrap">Type</th>
+                  <th className="px-3 whitespace-nowrap">Status</th>
+                  <th className="px-3 whitespace-nowrap">Priority</th>
+                  <th className="px-3 whitespace-nowrap">Phase</th>
+                  <th className="px-3 whitespace-nowrap">Milestone</th>
                 </tr>
               </thead>
               <tbody>

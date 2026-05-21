@@ -39,14 +39,30 @@ export default async function BoardPage({
   const epics = await listEpicTicketsByProject(project.id);
   const fieldValues = await listFieldValues(project.id);
 
+  function getVals(param: string | undefined): string[] {
+    if (!param) return [];
+    return param.split(",").filter(Boolean);
+  }
+
   const filtered = all.filter((t) => {
-    if (sp.epic && (t.epicId ?? "") !== sp.epic) return false;
-    if (sp.phase && (t.phase ?? "") !== sp.phase) return false;
-    if (sp.milestone && (t.milestone ?? "") !== sp.milestone) return false;
-    if (sp.sprint && (t.sprint ?? "") !== sp.sprint) return false;
-    if (sp.fixVersion && (t.fixVersion ?? "") !== sp.fixVersion) return false;
-    if (sp.priority && t.priority !== sp.priority) return false;
-    if (sp.type && t.type !== sp.type) return false;
+    const epics = getVals(sp.epic);
+    const phases = getVals(sp.phase);
+    const milestones = getVals(sp.milestone);
+    const sprints = getVals(sp.sprint);
+    const fixVersions = getVals(sp.fixVersion);
+    const priorities = getVals(sp.priority);
+    const types = getVals(sp.type);
+    if (epics.length && !epics.includes(t.epicId ?? "")) return false;
+    if (phases.length && !phases.includes(t.phase ?? "")) return false;
+    if (milestones.length && !milestones.includes(t.milestone ?? "")) return false;
+    if (sprints.length && !sprints.includes(t.sprint ?? "")) return false;
+    if (fixVersions.length && !fixVersions.includes(t.fixVersion ?? "")) return false;
+    if (priorities.length && !priorities.includes(t.priority ?? "")) return false;
+    if (types.length && !types.includes(t.type)) return false;
+    if (sp.q) {
+      const q = sp.q.toLowerCase();
+      if (!t.title.toLowerCase().includes(q) && !t.key.toLowerCase().includes(q)) return false;
+    }
     return true;
   });
 
@@ -67,10 +83,10 @@ export default async function BoardPage({
   return (
     <div className="flex flex-col flex-1 min-h-0 px-3 pt-4 sm:px-6 sm:pt-4">
       <div className="mb-3 shrink-0">
-        <Filters defs={defs} />
+        <Filters defs={defs} storageKey={`board-filters-${key}`} />
       </div>
       <div className="flex-1 min-h-0">
-        <BoardClient project={project} tickets={filtered} fieldValues={fieldValues} allTickets={all} />
+        <BoardClient project={project} tickets={filtered} fieldValues={fieldValues} allTickets={all} initialSearch={sp.q ?? ""} />
       </div>
     </div>
   );
