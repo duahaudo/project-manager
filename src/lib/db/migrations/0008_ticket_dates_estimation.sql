@@ -1,0 +1,3 @@
+ALTER TABLE tickets ADD COLUMN start_date INTEGER;
+ALTER TABLE tickets ADD COLUMN end_date INTEGER;
+ALTER TABLE tickets ADD COLUMN estimation REAL;

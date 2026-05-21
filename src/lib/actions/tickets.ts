@@ -22,6 +22,9 @@ const TicketCreateSchema = z.object({
   phase: z.string().optional(),
   parentId: z.string().nullable().optional(),
   relatedIds: z.array(z.string()).optional(),
+  startDate: z.string().nullable().optional(),
+  endDate: z.string().nullable().optional(),
+  estimation: z.number().nullable().optional(),
 });
 
 export async function createTicket(input: z.infer<typeof TicketCreateSchema>) {
@@ -65,6 +68,9 @@ export async function createTicket(input: z.infer<typeof TicketCreateSchema>) {
     phase: data.phase ?? null,
     parentId: data.parentId ?? null,
     relatedIds: data.relatedIds ?? [],
+    startDate: data.startDate ? new Date(data.startDate) : null,
+    endDate: data.endDate ? new Date(data.endDate) : null,
+    estimation: data.estimation ?? null,
     rank,
   });
   await db
@@ -94,14 +100,22 @@ const TicketUpdateSchema = z.object({
   components: z.array(z.string()).optional(),
   parentId: z.string().nullable().optional(),
   relatedIds: z.array(z.string()).optional(),
+  startDate: z.string().nullable().optional(),
+  endDate: z.string().nullable().optional(),
+  estimation: z.number().nullable().optional(),
 });
 
 export async function updateTicket(input: z.infer<typeof TicketUpdateSchema>) {
   const data = TicketUpdateSchema.parse(input);
-  const { id, ...rest } = data;
+  const { id, startDate, endDate, ...rest } = data;
   await db
     .update(schema.tickets)
-    .set({ ...rest, updatedAt: new Date() })
+    .set({
+      ...rest,
+      startDate: startDate !== undefined ? (startDate ? new Date(startDate) : null) : undefined,
+      endDate: endDate !== undefined ? (endDate ? new Date(endDate) : null) : undefined,
+      updatedAt: new Date(),
+    })
     .where(eq(schema.tickets.id, id));
   const t = await db
     .select({ key: schema.tickets.key })

@@ -11,11 +11,17 @@ import { RelatedTicketsPicker } from "./RelatedTicketsPicker";
 
 type FieldValues = { phase: string[]; milestone: string[]; sprint: string[]; fixVersion: string[] };
 
+function toDateInput(d: Date | null | undefined): string {
+  if (!d) return "";
+  const dt = new Date(d);
+  return dt.toISOString().slice(0, 10);
+}
+
 type Draft = Pick<
   Ticket,
   | "title" | "description" | "type" | "priority" | "status"
   | "phase" | "milestone" | "sprint" | "fixVersion" | "storyPoints"
-> & { relatedIds: string[] };
+> & { relatedIds: string[]; startDate: string; endDate: string; estimation: number | null };
 
 export function TicketForm({
   mode,
@@ -53,6 +59,9 @@ export function TicketForm({
         fixVersion: ticket.fixVersion,
         storyPoints: ticket.storyPoints,
         relatedIds: ticket.relatedIds ?? [],
+        startDate: toDateInput(ticket.startDate),
+        endDate: toDateInput(ticket.endDate),
+        estimation: ticket.estimation ?? null,
       }
     : {
         title: "",
@@ -66,6 +75,9 @@ export function TicketForm({
         fixVersion: null,
         storyPoints: null,
         relatedIds: [],
+        startDate: "",
+        endDate: "",
+        estimation: null,
       };
 
   const [t, setT] = useState<Draft>(initial);
@@ -117,6 +129,9 @@ export function TicketForm({
             fixVersion: t.fixVersion ?? undefined,
             storyPoints: t.storyPoints ?? undefined,
             relatedIds: t.relatedIds,
+            startDate: t.startDate || null,
+            endDate: t.endDate || null,
+            estimation: t.estimation,
           });
         } else if (ticket) {
           await updateTicket({
@@ -132,6 +147,9 @@ export function TicketForm({
             fixVersion: t.fixVersion,
             storyPoints: t.storyPoints,
             relatedIds: t.relatedIds,
+            startDate: t.startDate || null,
+            endDate: t.endDate || null,
+            estimation: t.estimation,
           });
         }
         if (onSaved) {
@@ -173,7 +191,7 @@ export function TicketForm({
             value={t.title}
             onChange={(e) => set("title", e.target.value)}
             placeholder="Title"
-            className="w-full rounded border border-zinc-300 bg-white px-3 py-2 text-xl font-semibold text-zinc-900 placeholder:text-zinc-400"
+            className="w-full rounded border border-zinc-300 bg-white px-3 py-2 text-sm font-semibold text-zinc-900 placeholder:text-zinc-400"
           />
           <div>
             <div className="mb-1 flex items-center justify-between">
@@ -316,6 +334,32 @@ export function TicketForm({
               type="number"
               value={t.storyPoints ?? ""}
               onChange={(e) => set("storyPoints", e.target.value ? Number(e.target.value) : null)}
+              className="w-full rounded border border-zinc-300 bg-white px-2 py-1 text-zinc-900"
+            />
+          </Field>
+          <Field label="Start Date">
+            <input
+              type="date"
+              value={t.startDate}
+              onChange={(e) => set("startDate", e.target.value)}
+              className="w-full rounded border border-zinc-300 bg-white px-2 py-1 text-zinc-900"
+            />
+          </Field>
+          <Field label="End Date">
+            <input
+              type="date"
+              value={t.endDate}
+              onChange={(e) => set("endDate", e.target.value)}
+              className="w-full rounded border border-zinc-300 bg-white px-2 py-1 text-zinc-900"
+            />
+          </Field>
+          <Field label="Estimation (hours)">
+            <input
+              type="number"
+              min="0"
+              step="0.5"
+              value={t.estimation ?? ""}
+              onChange={(e) => set("estimation", e.target.value ? Number(e.target.value) : null)}
               className="w-full rounded border border-zinc-300 bg-white px-2 py-1 text-zinc-900"
             />
           </Field>

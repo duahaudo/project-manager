@@ -57,6 +57,9 @@ export const tickets = sqliteTable("tickets", {
   phase: text("phase"),
   components: text("components", { mode: "json" }).$type<string[]>().default(sql`'[]'`),
   rank: text("rank").notNull(),
+  startDate: integer("start_date", { mode: "timestamp" }),
+  endDate: integer("end_date", { mode: "timestamp" }),
+  estimation: integer("estimation"),
   dueDate: integer("due_date", { mode: "timestamp" }),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
