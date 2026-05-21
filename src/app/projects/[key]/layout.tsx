@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getProjectByKey } from "@/lib/actions/projects";
+import { listFieldValues } from "@/lib/actions/tickets";
 import { RefreshButton } from "@/components/ui/RefreshButton";
+import { NewTicketButton } from "@/components/ticket/NewTicketButton";
 
 export default async function ProjectLayout({
   children,
@@ -13,7 +15,8 @@ export default async function ProjectLayout({
   const { key } = await params;
   const project = await getProjectByKey(key);
   if (!project) notFound();
-  // Cookie "last-project-key" written by middleware.ts
+
+  const fieldValues = await listFieldValues(project.id);
 
   return (
     <div className="flex h-screen flex-col">
@@ -27,6 +30,12 @@ export default async function ProjectLayout({
             <span className="text-zinc-400">·</span> {project.name}
           </h1>
           <nav className="ml-auto flex items-center gap-3 text-sm">
+            <NewTicketButton
+              projectId={project.id}
+              projectKey={project.key}
+              statuses={project.statuses}
+              fieldValues={fieldValues}
+            />
             <RefreshButton />
             <Link href={`/projects/${project.key}/board`} className="hover:underline">Board</Link>
             <Link href={`/projects/${project.key}/backlog`} className="hover:underline">Backlog</Link>

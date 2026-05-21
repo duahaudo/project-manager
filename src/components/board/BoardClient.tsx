@@ -19,7 +19,7 @@ const Board = dynamic(() => import("./Board").then((m) => m.Board), {
   ),
 });
 
-type OpenState = { mode: "create" } | { mode: "edit"; ticket: Ticket } | null;
+type OpenState = { mode: "edit"; ticket: Ticket } | null;
 
 const LS_KEY = (projectKey: string) => `board-hidden-statuses-${projectKey}`;
 
@@ -78,18 +78,12 @@ export function BoardClient({
 
   return (
     <div className="flex h-full flex-col">
-      <div className="mb-3 flex shrink-0 items-center justify-between">
+      <div className="mb-3 flex shrink-0 items-center">
         <ColumnToggle
           statuses={project.statuses}
           hidden={hiddenStatuses}
           onToggle={toggleStatus}
         />
-        <button
-          onClick={() => setOpen({ mode: "create" })}
-          className="rounded bg-indigo-600 px-4 py-2 text-sm text-white hover:bg-indigo-700"
-        >
-          + New Ticket
-        </button>
       </div>
       <div className="flex-1 min-h-0">
         <Board
@@ -101,8 +95,8 @@ export function BoardClient({
       </div>
       {open && (
         <TicketModal
-          mode={open.mode}
-          ticket={open.mode === "edit" ? open.ticket : null}
+          mode="edit"
+          ticket={open.ticket}
           projectId={project.id}
           projectKey={project.key}
           statuses={project.statuses}
