@@ -65,11 +65,13 @@ export default async function BoardPage({
   ];
 
   return (
-    <div>
-      <div className="mb-4">
+    <div className="flex flex-col flex-1 min-h-0 px-3 pt-4 sm:px-6 sm:pt-4">
+      <div className="mb-3 shrink-0">
         <Filters defs={defs} />
       </div>
-      <BoardClient project={project} tickets={filtered} fieldValues={fieldValues} allTickets={all} />
+      <div className="flex-1 min-h-0">
+        <BoardClient project={project} tickets={filtered} fieldValues={fieldValues} allTickets={all} />
+      </div>
     </div>
   );
 }

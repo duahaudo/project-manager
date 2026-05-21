@@ -19,10 +19,12 @@ import { moveTicket } from "@/lib/actions/tickets";
 export function Board({
   project,
   tickets: initial,
+  hiddenStatuses = [],
   onCardClick,
 }: {
   project: Project;
   tickets: Ticket[];
+  hiddenStatuses?: string[];
   onCardClick?: (t: Ticket) => void;
 }) {
   const [tickets, setTickets] = useState(initial);
@@ -100,8 +102,8 @@ export function Board({
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
     >
-      <div className="flex gap-3 overflow-x-auto pb-4 -mx-3 px-3 sm:-mx-6 sm:px-6">
-        {project.statuses.map((status) => {
+      <div className="flex h-full gap-3 overflow-x-auto pb-2 -mx-3 px-3 sm:-mx-6 sm:px-6">
+        {project.statuses.filter((s) => !hiddenStatuses.includes(s)).map((status) => {
           const items = byStatus.get(status) ?? [];
           return (
             <SortableContext

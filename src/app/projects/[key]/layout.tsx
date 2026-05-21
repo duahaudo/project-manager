@@ -16,8 +16,8 @@ export default async function ProjectLayout({
   // Cookie "last-project-key" written by middleware.ts
 
   return (
-    <div className="flex h-full min-h-screen flex-col">
-      <header className="sticky top-0 z-20 border-b border-zinc-200 bg-white">
+    <div className="flex h-screen flex-col">
+      <header className="sticky top-0 z-20 shrink-0 border-b border-zinc-200 bg-white">
         <div className="flex flex-wrap items-center gap-3 px-3 py-2 sm:px-6 sm:py-3">
           <Link href="/?all=1" className="text-xs text-zinc-500 hover:underline whitespace-nowrap">
             ← Projects
@@ -35,7 +35,7 @@ export default async function ProjectLayout({
           </nav>
         </div>
       </header>
-      <main className="flex-1 px-3 py-4 sm:px-6 sm:py-6">{children}</main>
+      <main className="flex-1 min-h-0 flex flex-col overflow-hidden">{children}</main>
     </div>
   );
 }

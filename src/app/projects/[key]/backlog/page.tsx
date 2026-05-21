@@ -50,11 +50,13 @@ export default async function BacklogPage({
   ];
 
   return (
-    <BacklogClient
-      initialTickets={all}
-      projectKey={key}
-      filterDefs={defs}
-      initialFilters={sp}
-    />
+    <div className="flex-1 min-h-0 overflow-y-auto px-3 py-4 sm:px-6 sm:py-6">
+      <BacklogClient
+        initialTickets={all}
+        projectKey={key}
+        filterDefs={defs}
+        initialFilters={sp}
+      />
+    </div>
   );
 }

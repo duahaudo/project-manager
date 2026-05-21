@@ -25,6 +25,7 @@ export default async function TicketDetailPage({
   const ticketUrl = `/projects/${key}/tickets/${ticketKey}`;
 
   return (
+    <div className="flex-1 min-h-0 overflow-y-auto px-3 py-4 sm:px-6 sm:py-6">
     <div className="mx-auto max-w-5xl">
       <div className="mb-4 flex items-center gap-3">
         <Link href={`/projects/${key}/board`} className="text-sm text-zinc-500 hover:underline">
@@ -44,6 +45,7 @@ export default async function TicketDetailPage({
           allTickets={allTickets}
         />
       </div>
+    </div>
     </div>
   );
 }

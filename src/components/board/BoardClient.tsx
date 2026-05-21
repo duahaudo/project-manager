@@ -4,26 +4,24 @@ import { useState, useEffect, useRef } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import type { Project, Ticket } from "@/lib/db/schema";
 import { TicketModal } from "@/components/ticket/TicketModal";
+import { ColumnToggle } from "./ColumnToggle";
 
 type FieldValues = { phase: string[]; milestone: string[]; sprint: string[]; fixVersion: string[] };
 
-// dnd-kit generates incremental aria-describedby IDs that mismatch between SSR/CSR.
-// Render Board only on client to avoid hydration warnings.
 const Board = dynamic(() => import("./Board").then((m) => m.Board), {
   ssr: false,
   loading: () => (
-    <div className="flex gap-3 overflow-x-auto pb-4">
+    <div className="flex h-full gap-3 overflow-x-auto pb-4">
       {[1, 2, 3, 4].map((i) => (
-        <div
-          key={i}
-          className="h-32 w-72 shrink-0 animate-pulse rounded-lg border border-zinc-200 bg-zinc-50"
-        />
+        <div key={i} className="h-full flex-1 min-w-[180px] animate-pulse rounded-lg border border-zinc-200 bg-zinc-50" />
       ))}
     </div>
   ),
 });
 
 type OpenState = { mode: "create" } | { mode: "edit"; ticket: Ticket } | null;
+
+const LS_KEY = (projectKey: string) => `board-hidden-statuses-${projectKey}`;
 
 export function BoardClient({
   project,
@@ -37,13 +35,20 @@ export function BoardClient({
   allTickets: Ticket[];
 }) {
   const [open, setOpen] = useState<OpenState>(null);
+  const [hiddenStatuses, setHiddenStatuses] = useState<string[]>([]);
   const sp = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
   const ticketsRef = useRef(tickets);
   ticketsRef.current = tickets;
 
-  // Deep-link support: ?ticket=KEY opens edit modal.
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(LS_KEY(project.key));
+      if (stored) setHiddenStatuses(JSON.parse(stored));
+    } catch {}
+  }, [project.key]);
+
   useEffect(() => {
     const k = sp.get("ticket");
     if (!k) return;
@@ -61,9 +66,24 @@ export function BoardClient({
     }
   }
 
+  function toggleStatus(status: string) {
+    setHiddenStatuses((prev) => {
+      const next = prev.includes(status)
+        ? prev.filter((s) => s !== status)
+        : [...prev, status];
+      try { localStorage.setItem(LS_KEY(project.key), JSON.stringify(next)); } catch {}
+      return next;
+    });
+  }
+
   return (
-    <>
-      <div className="mb-4 flex justify-end">
+    <div className="flex h-full flex-col">
+      <div className="mb-3 flex shrink-0 items-center justify-between">
+        <ColumnToggle
+          statuses={project.statuses}
+          hidden={hiddenStatuses}
+          onToggle={toggleStatus}
+        />
         <button
           onClick={() => setOpen({ mode: "create" })}
           className="rounded bg-indigo-600 px-4 py-2 text-sm text-white hover:bg-indigo-700"
@@ -71,7 +91,14 @@ export function BoardClient({
           + New Ticket
         </button>
       </div>
-      <Board project={project} tickets={tickets} onCardClick={(t) => setOpen({ mode: "edit", ticket: t })} />
+      <div className="flex-1 min-h-0">
+        <Board
+          project={project}
+          tickets={tickets}
+          hiddenStatuses={hiddenStatuses}
+          onCardClick={(t) => setOpen({ mode: "edit", ticket: t })}
+        />
+      </div>
       {open && (
         <TicketModal
           mode={open.mode}
@@ -84,6 +111,6 @@ export function BoardClient({
           onClose={close}
         />
       )}
-    </>
+    </div>
   );
 }
