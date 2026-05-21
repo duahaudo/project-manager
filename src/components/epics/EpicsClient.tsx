@@ -1,5 +1,5 @@
 "use client";
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import Link from "next/link";
 import {
   DndContext,
@@ -90,6 +90,8 @@ export function EpicsClient({
   const [epics, setEpics] = useState(initialEpics);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [phaseFilter, setPhaseFilter] = useState<string>("all");
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   const phases = Array.from(new Set(initialEpics.map((e) => e.phase).filter(Boolean))) as string[];
   const visibleEpics = phaseFilter === "all" ? epics : epics.filter((e) => e.phase === phaseFilter);
@@ -132,6 +134,8 @@ export function EpicsClient({
       <p className="text-sm text-zinc-500 italic">No epics yet. Create a ticket with type &ldquo;epic&rdquo;.</p>
     );
   }
+
+  if (!mounted) return null;
 
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={onDragStart} onDragEnd={onDragEnd}>

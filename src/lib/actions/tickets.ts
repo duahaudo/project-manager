@@ -162,6 +162,7 @@ export async function moveTicket(input: {
     const projectKey = t[0].key.split("-").slice(0, -1).join("-");
     revalidatePath(`/projects/${projectKey}/board`);
     revalidatePath(`/projects/${projectKey}/backlog`);
+    revalidatePath(`/projects/${projectKey}/epics`);
   }
 }
 
@@ -244,11 +245,26 @@ export async function listFieldValues(
 }
 
 export async function listEpicTicketsByProject(projectId: string) {
-  return db
+  const epics = await db
     .select()
     .from(schema.tickets)
     .where(and(eq(schema.tickets.projectId, projectId), eq(schema.tickets.type, "epic")))
-    .orderBy(asc(schema.tickets.createdAt));
+    .orderBy(asc(schema.tickets.rank), asc(schema.tickets.createdAt));
+
+  // Normalize ranks if duplicates exist — ensures stable ordering after seed data
+  const ranks = epics.map((e) => e.rank);
+  const hasDuplicates = new Set(ranks).size < ranks.length;
+  if (hasDuplicates) {
+    let prev: string | null = null;
+    for (const epic of epics) {
+      const newRank = midpoint(prev, null);
+      await db.update(schema.tickets).set({ rank: newRank }).where(eq(schema.tickets.id, epic.id));
+      epic.rank = newRank;
+      prev = newRank;
+    }
+  }
+
+  return epics;
 }
 
 export async function createEpicTicket(input: {
