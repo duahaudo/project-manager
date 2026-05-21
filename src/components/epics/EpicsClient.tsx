@@ -61,6 +61,7 @@ function SortableRow({
       </td>
       <td className="py-2 pr-4 text-zinc-600">{epic.status}</td>
       <td className="py-2 pr-4 text-zinc-600">{epic.priority}</td>
+      <td className="py-2 pr-4 text-zinc-600">{epic.phase ?? "—"}</td>
       <td className="py-2 pr-4 text-zinc-500">{childCount}</td>
     </tr>
   );
@@ -88,6 +89,10 @@ export function EpicsClient({
 }) {
   const [epics, setEpics] = useState(initialEpics);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [phaseFilter, setPhaseFilter] = useState<string>("all");
+
+  const phases = Array.from(new Set(initialEpics.map((e) => e.phase).filter(Boolean))) as string[];
+  const visibleEpics = phaseFilter === "all" ? epics : epics.filter((e) => e.phase === phaseFilter);
   const [, startTransition] = useTransition();
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
   const activeEpic = activeId ? epics.find((e) => e.id === activeId) ?? null : null;
@@ -130,6 +135,21 @@ export function EpicsClient({
 
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={onDragStart} onDragEnd={onDragEnd}>
+      {phases.length > 0 && (
+        <div className="mb-3 flex items-center gap-2">
+          <span className="text-xs text-zinc-500 font-medium">Phase:</span>
+          <select
+            value={phaseFilter}
+            onChange={(e) => setPhaseFilter(e.target.value)}
+            className="text-xs border border-zinc-300 rounded px-2 py-1 text-zinc-700 bg-white focus:outline-none focus:ring-1 focus:ring-indigo-400"
+          >
+            <option value="all">All</option>
+            {phases.map((p) => (
+              <option key={p} value={p}>{p}</option>
+            ))}
+          </select>
+        </div>
+      )}
       <div className="overflow-auto">
         <table className="w-full text-sm border-collapse">
           <thead>
@@ -139,12 +159,13 @@ export function EpicsClient({
               <th className="pb-2 pr-4 font-medium">Title</th>
               <th className="pb-2 pr-4 font-medium">Status</th>
               <th className="pb-2 pr-4 font-medium">Priority</th>
+              <th className="pb-2 pr-4 font-medium">Phase</th>
               <th className="pb-2 pr-4 font-medium">Children</th>
             </tr>
           </thead>
           <tbody>
-            <SortableContext items={epics.map((e) => e.id)} strategy={verticalListSortingStrategy}>
-              {epics.map((epic) => (
+            <SortableContext items={visibleEpics.map((e) => e.id)} strategy={verticalListSortingStrategy}>
+              {visibleEpics.map((epic) => (
                 <SortableRow
                   key={epic.id}
                   epic={epic}
