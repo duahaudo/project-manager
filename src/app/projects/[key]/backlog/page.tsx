@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { getProjectByKey } from "@/lib/actions/projects";
-import { listTicketsByProject, listEpicsByProject } from "@/lib/actions/tickets";
+import { listTicketsByProject, listEpicTicketsByProject } from "@/lib/actions/tickets";
 import { type FilterDef } from "@/components/board/Filters";
 import { BacklogClient } from "@/components/backlog/BacklogClient";
 
@@ -36,7 +36,7 @@ export default async function BacklogPage({
   if (!project) notFound();
 
   const all = await listTicketsByProject(project.id);
-  const epics = await listEpicsByProject(project.id);
+  const epics = await listEpicTicketsByProject(project.id);
 
   const defs: FilterDef[] = [
     { key: "epic", label: "Epic", options: epics.map((e) => ({ value: e.id, label: e.title })) },

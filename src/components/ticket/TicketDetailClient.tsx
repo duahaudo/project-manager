@@ -12,6 +12,10 @@ export function TicketDetailClient({
   statuses,
   fieldValues,
   allTickets,
+  parentTicket,
+  childTickets,
+  disableTypeChange,
+  allTicketsForParent,
 }: {
   ticket: Ticket;
   projectId: string;
@@ -19,6 +23,10 @@ export function TicketDetailClient({
   statuses: string[];
   fieldValues: FieldValues;
   allTickets: Ticket[];
+  parentTicket: Ticket | null;
+  childTickets: Ticket[];
+  disableTypeChange?: boolean;
+  allTicketsForParent: Ticket[];
 }) {
   const router = useRouter();
   return (
@@ -30,6 +38,10 @@ export function TicketDetailClient({
       statuses={statuses}
       fieldValues={fieldValues}
       allTickets={allTickets}
+      parentTicket={parentTicket}
+      childTickets={childTickets}
+      disableTypeChange={disableTypeChange}
+      allTicketsForParent={allTicketsForParent}
       onClose={() => router.back()}
       onSaved={() => router.refresh()}
     />

@@ -15,6 +15,9 @@ export function TicketModal({
   statuses,
   fieldValues,
   allTickets,
+  defaultParentId,
+  defaultEpicId,
+  allTicketsForParent,
   onClose,
 }: {
   mode: "create" | "edit";
@@ -24,6 +27,9 @@ export function TicketModal({
   statuses: string[];
   fieldValues: FieldValues;
   allTickets?: Ticket[];
+  defaultParentId?: string;
+  defaultEpicId?: string;
+  allTicketsForParent?: Ticket[];
   onClose: () => void;
 }) {
   const router = useRouter();
@@ -57,10 +63,29 @@ export function TicketModal({
         <div className="sticky top-0 z-10 flex items-center justify-between rounded-t-lg border-b border-zinc-200 bg-white px-6 py-3">
           <div className="flex items-center gap-2">
             <h2 className="text-base font-semibold text-zinc-900">
-              {mode === "create" ? "New Ticket" : `Edit ${ticket?.key}`}
+              {mode === "create" ? "New Ticket" : "Edit "}
+              {mode === "edit" && ticket && (
+                <a
+                  href={`/projects/${projectKey}/tickets/${ticket.key}`}
+                  className="font-mono text-indigo-600 hover:underline"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {ticket.key}
+                </a>
+              )}
             </h2>
             {mode === "edit" && ticket && (
-              <CopyLinkButton path={`/projects/${projectKey}/tickets/${ticket.key}`} />
+              <>
+                <span className={`rounded px-2 py-0.5 text-xs font-medium text-white ${{
+                  story: "bg-green-500",
+                  bug: "bg-red-500",
+                  task: "bg-blue-500",
+                  epic: "bg-purple-500",
+                }[ticket.type] ?? "bg-zinc-400"}`}>
+                  {ticket.type}
+                </span>
+                <CopyLinkButton path={`/projects/${projectKey}/tickets/${ticket.key}`} />
+              </>
             )}
           </div>
           <button
@@ -83,6 +108,10 @@ export function TicketModal({
             statuses={statuses}
             fieldValues={fieldValues}
             allTickets={allTickets}
+            defaultParentId={defaultParentId}
+            defaultEpicId={defaultEpicId}
+            allTicketsForParent={allTicketsForParent}
+            hideChildren
             onClose={onClose}
             onChanged={() => router.refresh()}
           />

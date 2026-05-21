@@ -1,13 +1,15 @@
 import { NextRequest } from "next/server";
 import { checkAuth, ok, bad } from "@/lib/api-auth";
 import { getProjectByKey, createProject } from "@/lib/actions/projects";
-import { createTicket, createEpic } from "@/lib/actions/tickets";
+import { createTicket, createEpicTicket } from "@/lib/actions/tickets";
 import { z } from "zod";
 
 const EpicSchema = z.object({
   title: z.string(),
   description: z.string().nullable().optional(),
   _localId: z.string().optional(),
+  brdRef: z.string().nullable().optional(),
+  techSpecRef: z.string().nullable().optional(),
 });
 
 const TicketSchema = z.object({
@@ -61,15 +63,17 @@ export async function POST(req: NextRequest) {
     if (!project) return bad("failed to create/find project", 500);
 
     const epicIdMap: Record<string, string> = {};
-    const createdEpics: { id: string; title: string }[] = [];
+    const createdEpics: { id: string; key: string; title: string }[] = [];
     for (const e of data.epics ?? []) {
-      const r = await createEpic({
+      const r = await createEpicTicket({
         projectId: project.id,
         title: e.title,
         description: e.description ?? undefined,
+        brdRef: e.brdRef ?? undefined,
+        techSpecRef: e.techSpecRef ?? undefined,
       });
       if (e._localId) epicIdMap[e._localId] = r.id;
-      createdEpics.push({ id: r.id, title: e.title });
+      createdEpics.push({ id: r.id, key: r.key, title: e.title });
     }
 
     const createdTickets: { key: string; id: string }[] = [];

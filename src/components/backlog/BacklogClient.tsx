@@ -42,7 +42,7 @@ function SortableRow({ ticket, projectKey }: { ticket: Ticket; projectKey: strin
       </td>
       <td className="py-2 font-mono">
         <div className="flex items-center gap-1">
-          <Link href={`/projects/${projectKey}/tickets/${ticket.key}`} className="text-indigo-600">
+          <Link href={`/projects/${projectKey}/tickets/${ticket.key}?from=backlog`} className="text-indigo-600">
             {ticket.key}
           </Link>
           <CopyLinkButton path={`/projects/${projectKey}/tickets/${ticket.key}`} />

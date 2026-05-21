@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { checkAuth, ok, bad } from "@/lib/api-auth";
-import { listEpicsByProject, createEpic } from "@/lib/actions/tickets";
+import { listEpicTicketsByProject, createEpicTicket } from "@/lib/actions/tickets";
 import { getProjectByKey } from "@/lib/actions/projects";
 import { z } from "zod";
 
@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
   if (!projectKey) return bad("projectKey required");
   const p = await getProjectByKey(projectKey);
   if (!p) return bad("project not found", 404);
-  return ok(await listEpicsByProject(p.id));
+  return ok(await listEpicTicketsByProject(p.id));
 }
 
 const InputSchema = z.object({
@@ -19,6 +19,8 @@ const InputSchema = z.object({
   projectId: z.string().optional(),
   title: z.string().min(1),
   description: z.string().optional(),
+  brdRef: z.string().optional(),
+  techSpecRef: z.string().optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -34,7 +36,7 @@ export async function POST(req: NextRequest) {
       projectId = p.id;
     }
     if (!projectId) return bad("projectKey or projectId required");
-    const result = await createEpic({ projectId, title: data.title, description: data.description });
+    const result = await createEpicTicket({ projectId, title: data.title, description: data.description, brdRef: data.brdRef, techSpecRef: data.techSpecRef });
     return ok(result, 201);
   } catch (e: any) {
     return bad(e.message ?? "invalid input", 400);

@@ -8,6 +8,8 @@ import type { Ticket } from "@/lib/db/schema";
 import { MarkdownEditor } from "./MarkdownEditor";
 import { Combobox } from "@/components/ui/Combobox";
 import { RelatedTicketsPicker } from "./RelatedTicketsPicker";
+import { ParentSection } from "./ParentSection";
+import { ChildrenSection } from "./ChildrenSection";
 
 type FieldValues = { phase: string[]; milestone: string[]; sprint: string[]; fixVersion: string[] };
 
@@ -21,7 +23,14 @@ type Draft = Pick<
   Ticket,
   | "title" | "description" | "type" | "priority" | "status"
   | "phase" | "milestone" | "sprint" | "fixVersion" | "storyPoints"
-> & { relatedIds: string[]; startDate: string; endDate: string; estimation: number | null };
+> & {
+  relatedIds: string[];
+  startDate: string;
+  endDate: string;
+  estimation: number | null;
+  parentId: string | null;
+  epicId: string | null;
+};
 
 export function TicketForm({
   mode,
@@ -31,6 +40,13 @@ export function TicketForm({
   statuses,
   fieldValues,
   allTickets,
+  parentTicket,
+  childTickets,
+  defaultParentId,
+  defaultEpicId,
+  disableTypeChange,
+  allTicketsForParent,
+  hideChildren,
   onClose,
   onChanged,
   onSaved,
@@ -42,6 +58,13 @@ export function TicketForm({
   statuses: string[];
   fieldValues: FieldValues;
   allTickets?: Ticket[];
+  parentTicket?: Ticket | null;
+  childTickets?: Ticket[];
+  defaultParentId?: string | null;
+  defaultEpicId?: string | null;
+  disableTypeChange?: boolean;
+  allTicketsForParent?: Ticket[];
+  hideChildren?: boolean;
   onClose: () => void;
   onChanged?: () => void;
   onSaved?: () => void;
@@ -62,6 +85,8 @@ export function TicketForm({
         startDate: toDateInput(ticket.startDate),
         endDate: toDateInput(ticket.endDate),
         estimation: ticket.estimation ?? null,
+        parentId: ticket.parentId ?? null,
+        epicId: ticket.epicId ?? null,
       }
     : {
         title: "",
@@ -78,12 +103,27 @@ export function TicketForm({
         startDate: "",
         endDate: "",
         estimation: null,
+        parentId: defaultParentId ?? null,
+        epicId: defaultEpicId ?? null,
       };
 
   const [t, setT] = useState<Draft>(initial);
+  const [currentParent, setCurrentParent] = useState<Ticket | null>(() => {
+    if (parentTicket) return parentTicket;
+    if (initial.parentId && allTicketsForParent) {
+      return allTicketsForParent.find((tk) => tk.id === initial.parentId) ?? null;
+    }
+    return null;
+  });
   const [descMode, setDescMode] = useState<"edit" | "preview">(mode === "create" ? "edit" : "preview");
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
+
+  function handleParentChange(parentId: string | null) {
+    set("parentId", parentId);
+    const found = parentId ? (allTicketsForParent ?? []).find((tk) => tk.id === parentId) ?? null : null;
+    setCurrentParent(found);
+  }
 
   function set<K extends keyof Draft>(k: K, v: Draft[K]) {
     setT((cur) => ({ ...cur, [k]: v }));
@@ -150,6 +190,7 @@ export function TicketForm({
             startDate: t.startDate || null,
             endDate: t.endDate || null,
             estimation: t.estimation,
+            parentId: t.parentId,
           });
         }
         if (onSaved) {
@@ -176,15 +217,20 @@ export function TicketForm({
 
   return (
     <div className="flex flex-col">
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-[1fr_280px]">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-[1fr_280px] md:items-stretch">
         {/* Main */}
-        <div className="min-w-0 space-y-4">
-          {isEdit && ticket && (
-            <div className="flex items-center gap-3 text-sm text-zinc-500">
-              <span className="font-mono">{ticket.key}</span>
-              <span>·</span>
-              <span>{t.type}</span>
-            </div>
+        <div className="flex min-w-0 flex-col gap-4">
+          {allTicketsForParent && allTicketsForParent.length > 0 && (!ticket || ticket.type !== "epic") && (
+            <ParentSection
+              currentTicket={ticket}
+              parentTicket={currentParent}
+              allTickets={allTicketsForParent}
+              projectKey={projectKey}
+              projectId={projectId}
+              statuses={statuses}
+              fieldValues={fieldValues}
+              onParentChange={handleParentChange}
+            />
           )}
           <input
             autoFocus={!isEdit}
@@ -193,7 +239,7 @@ export function TicketForm({
             placeholder="Title"
             className="w-full rounded border border-zinc-300 bg-white px-3 py-2 text-sm font-semibold text-zinc-900 placeholder:text-zinc-400"
           />
-          <div>
+          <div className="flex flex-1 flex-col min-h-0">
             <div className="mb-1 flex items-center justify-between">
               <label className="text-sm text-zinc-500">Description</label>
               <div className="flex gap-2 text-xs">
@@ -220,11 +266,12 @@ export function TicketForm({
                 onPaste={onPaste}
                 rows={12}
                 placeholder="Markdown supported. Paste image to embed. Use toolbar above."
+                className="flex-1 min-h-[200px]"
               />
             ) : (
               <div
                 onClick={() => setDescMode("edit")}
-                className="min-h-[200px] cursor-text rounded border border-zinc-200 bg-white px-3 py-3 text-sm leading-relaxed text-zinc-800 [&_a]:text-indigo-600 [&_a]:underline [&_code]:rounded [&_code]:bg-zinc-100 [&_code]:px-1 [&_code]:py-0.5 [&_h1]:mt-2 [&_h1]:mb-2 [&_h1]:text-xl [&_h1]:font-semibold [&_h2]:mt-2 [&_h2]:mb-1 [&_h2]:text-lg [&_h2]:font-semibold [&_h3]:mt-2 [&_h3]:font-semibold [&_img]:my-2 [&_img]:max-w-full [&_img]:rounded [&_li]:my-0.5 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:my-2 [&_pre]:my-2 [&_pre]:overflow-x-auto [&_pre]:rounded [&_pre]:bg-zinc-100 [&_pre]:p-3 [&_ul]:list-disc [&_ul]:pl-5"
+                className="flex-1 min-h-[200px] overflow-y-auto cursor-text rounded border border-zinc-200 bg-white px-3 py-3 text-sm leading-relaxed text-zinc-800 [&_a]:text-indigo-600 [&_a]:underline [&_code]:rounded [&_code]:bg-zinc-100 [&_code]:px-1 [&_code]:py-0.5 [&_h1]:mt-2 [&_h1]:mb-2 [&_h1]:text-xl [&_h1]:font-semibold [&_h2]:mt-2 [&_h2]:mb-1 [&_h2]:text-lg [&_h2]:font-semibold [&_h3]:mt-2 [&_h3]:font-semibold [&_img]:my-2 [&_img]:max-w-full [&_img]:rounded [&_li]:my-0.5 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:my-2 [&_pre]:my-2 [&_pre]:overflow-x-auto [&_pre]:rounded [&_pre]:bg-zinc-100 [&_pre]:p-3 [&_ul]:list-disc [&_ul]:pl-5"
               >
                 {t.description ? (
                   <ReactMarkdown
@@ -243,6 +290,17 @@ export function TicketForm({
               </div>
             )}
           </div>
+          {isEdit && ticket && !hideChildren && (
+            <ChildrenSection
+              currentTicket={ticket}
+              childTickets={childTickets ?? []}
+              projectKey={projectKey}
+              projectId={projectId}
+              statuses={statuses}
+              fieldValues={fieldValues}
+              allTicketsForParent={allTicketsForParent}
+            />
+          )}
         </div>
 
         {/* Sidebar */}
@@ -264,7 +322,8 @@ export function TicketForm({
             <select
               value={t.type}
               onChange={(e) => set("type", e.target.value as any)}
-              className="w-full rounded border border-zinc-300 bg-white px-2 py-1 text-zinc-900"
+              disabled={disableTypeChange === true}
+              className="w-full rounded border border-zinc-300 bg-white px-2 py-1 text-zinc-900 disabled:opacity-60"
             >
               {["task", "story", "bug", "epic"].map((x) => (
                 <option key={x}>{x}</option>

@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { getProjectByKey } from "@/lib/actions/projects";
-import { listTicketsByProject, listEpicsByProject, listFieldValues } from "@/lib/actions/tickets";
+import { listTicketsByProject, listEpicTicketsByProject, listFieldValues } from "@/lib/actions/tickets";
 import { BoardClient } from "@/components/board/BoardClient";
 import { Filters, type FilterDef } from "@/components/board/Filters";
 
@@ -36,7 +36,7 @@ export default async function BoardPage({
   if (!project) notFound();
 
   const all = await listTicketsByProject(project.id);
-  const epics = await listEpicsByProject(project.id);
+  const epics = await listEpicTicketsByProject(project.id);
   const fieldValues = await listFieldValues(project.id);
 
   const filtered = all.filter((t) => {

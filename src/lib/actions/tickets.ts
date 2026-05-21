@@ -1,6 +1,6 @@
 "use server";
 import { db, schema } from "@/lib/db/client";
-import { and, asc, desc, eq, gt, lt } from "drizzle-orm";
+import { and, asc, desc, eq, gt, lt, ne } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { uid } from "@/lib/utils";
 import { midpoint, initialRank } from "@/lib/rank";
@@ -118,7 +118,7 @@ export async function updateTicket(input: z.infer<typeof TicketUpdateSchema>) {
     })
     .where(eq(schema.tickets.id, id));
   const t = await db
-    .select({ key: schema.tickets.key })
+    .select({ key: schema.tickets.key, type: schema.tickets.type })
     .from(schema.tickets)
     .where(eq(schema.tickets.id, id))
     .limit(1);
@@ -126,6 +126,9 @@ export async function updateTicket(input: z.infer<typeof TicketUpdateSchema>) {
     const projectKey = t[0].key.split("-").slice(0, -1).join("-");
     revalidatePath(`/projects/${projectKey}/board`);
     revalidatePath(`/projects/${projectKey}/tickets/${t[0].key}`);
+    if (t[0].type === "epic") {
+      revalidatePath(`/projects/${projectKey}/epics/${t[0].key}`);
+    }
   }
 }
 
@@ -175,11 +178,41 @@ export async function deleteTicket(id: string) {
   }
 }
 
-export async function listTicketsByProject(projectId: string) {
+export async function listAllTicketsByProject(projectId: string) {
   return db
     .select()
     .from(schema.tickets)
     .where(eq(schema.tickets.projectId, projectId))
+    .orderBy(asc(schema.tickets.rank));
+}
+
+export async function getChildTickets(parentId: string, parentType?: string) {
+  if (parentType === "epic") {
+    return db
+      .select()
+      .from(schema.tickets)
+      .where(eq(schema.tickets.epicId, parentId))
+      .orderBy(asc(schema.tickets.rank));
+  }
+  return db
+    .select()
+    .from(schema.tickets)
+    .where(eq(schema.tickets.parentId, parentId))
+    .orderBy(asc(schema.tickets.rank));
+}
+
+export async function getParentTicket(parentId: string | null | undefined, epicId?: string | null) {
+  const id = parentId ?? epicId;
+  if (!id) return null;
+  const rows = await db.select().from(schema.tickets).where(eq(schema.tickets.id, id)).limit(1);
+  return rows[0] ?? null;
+}
+
+export async function listTicketsByProject(projectId: string) {
+  return db
+    .select()
+    .from(schema.tickets)
+    .where(and(eq(schema.tickets.projectId, projectId), ne(schema.tickets.type, "epic")))
     .orderBy(asc(schema.tickets.rank));
 }
 
@@ -210,21 +243,49 @@ export async function listFieldValues(
   };
 }
 
-export async function listEpicsByProject(projectId: string) {
+export async function listEpicTicketsByProject(projectId: string) {
   return db
     .select()
-    .from(schema.epics)
-    .where(eq(schema.epics.projectId, projectId))
-    .orderBy(asc(schema.epics.createdAt));
+    .from(schema.tickets)
+    .where(and(eq(schema.tickets.projectId, projectId), eq(schema.tickets.type, "epic")))
+    .orderBy(asc(schema.tickets.createdAt));
 }
 
-export async function createEpic(input: { projectId: string; title: string; description?: string }) {
+export async function createEpicTicket(input: {
+  projectId: string;
+  title: string;
+  description?: string;
+  brdRef?: string;
+  techSpecRef?: string;
+}) {
+  const project = await db
+    .select()
+    .from(schema.projects)
+    .where(eq(schema.projects.id, input.projectId))
+    .limit(1);
+  if (!project[0]) throw new Error("Project not found");
+  const proj = project[0];
+  const nextNum = proj.ticketCounter + 1;
+  const key = `${proj.key}-${nextNum}`;
+
   const id = uid();
-  await db.insert(schema.epics).values({
+  await db.insert(schema.tickets).values({
     id,
+    key,
     projectId: input.projectId,
     title: input.title,
     description: input.description ?? null,
+    type: "epic",
+    status: "To Do",
+    priority: "med",
+    rank: initialRank(),
+    brdRef: input.brdRef ?? null,
+    techSpecRef: input.techSpecRef ?? null,
   });
-  return { id };
+  await db
+    .update(schema.projects)
+    .set({ ticketCounter: nextNum })
+    .where(eq(schema.projects.id, input.projectId));
+
+  return { id, key };
 }

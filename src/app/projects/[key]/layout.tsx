@@ -39,6 +39,7 @@ export default async function ProjectLayout({
             <RefreshButton />
             <Link href={`/projects/${project.key}/board`} className="hover:underline">Board</Link>
             <Link href={`/projects/${project.key}/backlog`} className="hover:underline">Backlog</Link>
+            <Link href={`/projects/${project.key}/epics`} className="hover:underline">Epics</Link>
             <Link href={`/projects/${project.key}/import`} className="hover:underline">Import</Link>
             <Link href={`/api-docs`} className="hover:underline text-zinc-500">API</Link>
           </nav>

@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, index } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, index, type AnySQLiteColumn } from "drizzle-orm/sqlite-core";
 import { sql } from "drizzle-orm";
 
 export const projects = sqliteTable("projects", {
@@ -18,28 +18,14 @@ export const projects = sqliteTable("projects", {
     .default(sql`(unixepoch())`),
 });
 
-export const epics = sqliteTable("epics", {
-  id: text("id").primaryKey(),
-  projectId: text("project_id")
-    .notNull()
-    .references(() => projects.id, { onDelete: "cascade" }),
-  title: text("title").notNull(),
-  description: text("description"),
-  brdRef: text("brd_ref"),
-  techSpecRef: text("tech_spec_ref"),
-  createdAt: integer("created_at", { mode: "timestamp" })
-    .notNull()
-    .default(sql`(unixepoch())`),
-});
-
 export const tickets = sqliteTable("tickets", {
   id: text("id").primaryKey(),
   key: text("key").notNull().unique(),
   projectId: text("project_id")
     .notNull()
     .references(() => projects.id, { onDelete: "cascade" }),
-  epicId: text("epic_id").references(() => epics.id, { onDelete: "set null" }),
-  parentId: text("parent_id"),
+  epicId: text("epic_id").references((): AnySQLiteColumn => tickets.id, { onDelete: "set null" }),
+  parentId: text("parent_id").references((): AnySQLiteColumn => tickets.id, { onDelete: "set null" }),
   relatedIds: text("related_ids", { mode: "json" })
     .notNull()
     .$type<string[]>()
@@ -61,6 +47,8 @@ export const tickets = sqliteTable("tickets", {
   endDate: integer("end_date", { mode: "timestamp" }),
   estimation: integer("estimation"),
   dueDate: integer("due_date", { mode: "timestamp" }),
+  brdRef: text("brd_ref"),
+  techSpecRef: text("tech_spec_ref"),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .default(sql`(unixepoch())`),
@@ -71,6 +59,7 @@ export const tickets = sqliteTable("tickets", {
   index("tickets_project_id_idx").on(t.projectId),
   index("tickets_project_status_idx").on(t.projectId, t.status),
   index("tickets_rank_idx").on(t.rank),
+  index("tickets_parent_id_idx").on(t.parentId),
 ]);
 
 export const comments = sqliteTable("comments", {
@@ -87,5 +76,4 @@ export const comments = sqliteTable("comments", {
 
 export type Project = typeof projects.$inferSelect;
 export type Ticket = typeof tickets.$inferSelect;
-export type Epic = typeof epics.$inferSelect;
 export type Comment = typeof comments.$inferSelect;

@@ -17,6 +17,7 @@ export function MarkdownEditor({
   onPaste,
   rows = 14,
   placeholder,
+  className,
 }: {
   value: string;
   onChange: (v: string) => void;
@@ -24,6 +25,7 @@ export function MarkdownEditor({
   onPaste?: (e: React.ClipboardEvent<HTMLTextAreaElement>) => void;
   rows?: number;
   placeholder?: string;
+  className?: string;
 }) {
   const taRef = useRef<HTMLTextAreaElement>(null);
   const [showEmoji, setShowEmoji] = useState(false);
@@ -129,7 +131,7 @@ export function MarkdownEditor({
   const Sep = () => <span className="mx-1 h-5 w-px bg-zinc-300" />;
 
   return (
-    <div className="rounded border border-zinc-300 bg-white">
+    <div className={`flex flex-col rounded border border-zinc-300 bg-white${className ? ` ${className}` : ""}`}>
       <div className="flex flex-wrap items-center gap-0.5 border-b border-zinc-200 px-1 py-1">
         <Btn title="Bold (**text**)" onClick={() => apply({ kind: "wrap", before: "**", after: "**", placeholder: "bold" })}>
           <strong>B</strong>
@@ -192,7 +194,7 @@ export function MarkdownEditor({
         onPaste={onPaste}
         rows={rows}
         placeholder={placeholder}
-        className="w-full rounded-b bg-white px-3 py-2 font-mono text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none"
+        className="flex-1 min-h-0 w-full rounded-b bg-white px-3 py-2 font-mono text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none resize-none overflow-y-auto"
       />
     </div>
   );

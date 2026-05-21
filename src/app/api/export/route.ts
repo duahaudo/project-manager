@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { checkAuth, ok, bad } from "@/lib/api-auth";
 import { getProjectByKey } from "@/lib/actions/projects";
-import { listTicketsByProject, listEpicsByProject } from "@/lib/actions/tickets";
+import { listTicketsByProject, listEpicTicketsByProject } from "@/lib/actions/tickets";
 
 // GET /api/export?projectKey=ABT
 export async function GET(req: NextRequest) {
@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
   const project = await getProjectByKey(projectKey);
   if (!project) return bad("project not found", 404);
   const tickets = await listTicketsByProject(project.id);
-  const epics = await listEpicsByProject(project.id);
+  const epics = await listEpicTicketsByProject(project.id);
   return new Response(
     JSON.stringify({ project, epics, tickets, exportedAt: new Date().toISOString() }, null, 2),
     {
