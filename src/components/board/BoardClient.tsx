@@ -30,6 +30,7 @@ export function BoardClient({
   tickets,
   fieldValues,
   allTickets,
+  epicTickets = [],
   initialSearch = "",
   filterDefs = [],
 }: {
@@ -37,6 +38,7 @@ export function BoardClient({
   tickets: Ticket[];
   fieldValues: FieldValues;
   allTickets: Ticket[];
+  epicTickets?: Ticket[];
   initialSearch?: string;
   filterDefs?: FilterDef[];
 }) {
@@ -140,6 +142,7 @@ export function BoardClient({
           statuses={project.statuses}
           fieldValues={fieldValues}
           allTickets={allTickets}
+          allTicketsForParent={[...allTickets, ...epicTickets]}
           onClose={close}
         />
       )}

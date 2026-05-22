@@ -15,6 +15,7 @@ export function TicketModal({
   statuses,
   fieldValues,
   allTickets,
+  childTickets,
   defaultParentId,
   defaultEpicId,
   allTicketsForParent,
@@ -27,12 +28,14 @@ export function TicketModal({
   statuses: string[];
   fieldValues: FieldValues;
   allTickets?: Ticket[];
+  childTickets?: Ticket[];
   defaultParentId?: string;
   defaultEpicId?: string;
   allTicketsForParent?: Ticket[];
   onClose: () => void;
 }) {
   const router = useRouter();
+  const resolvedChildTickets = childTickets ?? (allTickets && ticket ? allTickets.filter((t) => t.parentId === ticket.id) : []);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -111,7 +114,7 @@ export function TicketModal({
             defaultParentId={defaultParentId}
             defaultEpicId={defaultEpicId}
             allTicketsForParent={allTicketsForParent}
-            hideChildren
+            childTickets={resolvedChildTickets}
             onClose={onClose}
             onChanged={() => router.refresh()}
           />

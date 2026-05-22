@@ -1,6 +1,7 @@
 "use client";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 import { TicketModal } from "./TicketModal";
 import { moveTicket } from "@/lib/actions/tickets";
 import type { Ticket } from "@/lib/db/schema";
@@ -68,7 +69,7 @@ function SortableChild({
         <span className="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-zinc-700" title={child.title}>
           {child.title}
         </span>
-        <span className="ml-auto shrink-0 text-xs text-zinc-400">{child.status}</span>
+        <StatusBadge status={child.status} className="ml-auto shrink-0" />
       </button>
     </li>
   );

@@ -1,6 +1,7 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 import type { Ticket } from "@/lib/db/schema";
 
 export function RelatedTicketsPicker({
@@ -82,7 +83,7 @@ export function RelatedTicketsPicker({
                 {t.key}
               </Link>
               <span className="text-zinc-600 truncate flex-1 min-w-0">{t.title}</span>
-              <span className="rounded px-1 py-0 text-[10px] font-medium bg-zinc-100 text-zinc-500 border border-zinc-200 shrink-0 whitespace-nowrap">{t.status}</span>
+              <StatusBadge status={t.status} className="shrink-0" />
               <button
                 type="button"
                 onClick={() => remove(t.id)}

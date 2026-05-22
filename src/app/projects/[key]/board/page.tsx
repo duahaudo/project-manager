@@ -83,7 +83,7 @@ export default async function BoardPage({
   return (
     <div className="flex flex-col flex-1 min-h-0 px-3 pt-4 sm:px-6 sm:pt-4">
       <div className="flex-1 min-h-0">
-        <BoardClient project={project} tickets={filtered} fieldValues={fieldValues} allTickets={all} initialSearch={sp.q ?? ""} filterDefs={defs} />
+        <BoardClient project={project} tickets={filtered} fieldValues={fieldValues} allTickets={all} epicTickets={epics} initialSearch={sp.q ?? ""} filterDefs={defs} />
       </div>
     </div>
   );

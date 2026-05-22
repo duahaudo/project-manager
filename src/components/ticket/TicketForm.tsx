@@ -110,12 +110,14 @@ export function TicketForm({
   const [t, setT] = useState<Draft>(initial);
   const [currentParent, setCurrentParent] = useState<Ticket | null>(() => {
     if (parentTicket) return parentTicket;
-    if (initial.parentId && allTicketsForParent) {
-      return allTicketsForParent.find((tk) => tk.id === initial.parentId) ?? null;
+    const lookupId = initial.parentId ?? ticket?.epicId ?? null;
+    if (lookupId && allTicketsForParent) {
+      return allTicketsForParent.find((tk) => tk.id === lookupId) ?? null;
     }
     return null;
   });
   const [descMode, setDescMode] = useState<"edit" | "preview">(mode === "create" ? "edit" : "preview");
+  const [activeTab, setActiveTab] = useState<"details" | "relations">("details");
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -221,18 +223,6 @@ export function TicketForm({
       <div className="grid grid-cols-1 gap-6 md:grid-cols-[1fr_280px] md:items-stretch">
         {/* Main */}
         <div className="flex min-w-0 flex-col gap-4">
-          {allTicketsForParent && allTicketsForParent.length > 0 && (!ticket || ticket.type !== "epic") && (
-            <ParentSection
-              currentTicket={ticket}
-              parentTicket={currentParent}
-              allTickets={allTicketsForParent}
-              projectKey={projectKey}
-              projectId={projectId}
-              statuses={statuses}
-              fieldValues={fieldValues}
-              onParentChange={handleParentChange}
-            />
-          )}
           <input
             autoFocus={!isEdit}
             value={t.title}
@@ -240,68 +230,130 @@ export function TicketForm({
             placeholder="Title"
             className="w-full rounded border border-zinc-300 bg-white px-3 py-2 text-sm font-semibold text-zinc-900 placeholder:text-zinc-400"
           />
-          <div className="flex flex-1 flex-col min-h-0">
-            <div className="mb-1 flex items-center justify-between">
-              <label className="text-sm text-zinc-500">Description</label>
-              <div className="flex gap-2 text-xs">
-                <button
-                  type="button"
-                  onClick={() => setDescMode("edit")}
-                  className={`rounded px-2 py-0.5 ${descMode === "edit" ? "bg-indigo-600 text-white" : "bg-zinc-200 text-zinc-700"}`}
-                >
-                  Edit
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setDescMode("preview")}
-                  className={`rounded px-2 py-0.5 ${descMode === "preview" ? "bg-indigo-600 text-white" : "bg-zinc-200 text-zinc-700"}`}
-                >
-                  Preview
-                </button>
-              </div>
-            </div>
-            {descMode === "edit" ? (
-              <MarkdownEditor
-                value={t.description ?? ""}
-                onChange={(v) => set("description", v)}
-                onPaste={onPaste}
-                rows={12}
-                placeholder="Markdown supported. Paste image to embed. Use toolbar above."
-                className="flex-1 min-h-[200px]"
-              />
-            ) : (
-              <div
-                onClick={() => setDescMode("edit")}
-                className="flex-1 min-h-[200px] overflow-y-auto cursor-text rounded border border-zinc-200 bg-white px-3 py-3 text-sm leading-relaxed text-zinc-800 [&_a]:text-indigo-600 [&_a]:underline [&_code]:rounded [&_code]:bg-zinc-100 [&_code]:px-1 [&_code]:py-0.5 [&_h1]:mt-2 [&_h1]:mb-2 [&_h1]:text-xl [&_h1]:font-semibold [&_h2]:mt-2 [&_h2]:mb-1 [&_h2]:text-lg [&_h2]:font-semibold [&_h3]:mt-2 [&_h3]:font-semibold [&_img]:my-2 [&_img]:max-w-full [&_img]:rounded [&_li]:my-0.5 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:my-2 [&_pre]:my-2 [&_pre]:overflow-x-auto [&_pre]:rounded [&_pre]:bg-zinc-100 [&_pre]:p-3 [&_ul]:list-disc [&_ul]:pl-5"
+
+          {/* Tabs */}
+          <div className="flex border-b border-zinc-200 gap-0">
+            <button
+              type="button"
+              onClick={() => setActiveTab("details")}
+              className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${activeTab === "details" ? "border-indigo-600 text-indigo-600" : "border-transparent text-zinc-500 hover:text-zinc-700"}`}
+            >
+              Details
+            </button>
+            {isEdit && (
+              <button
+                type="button"
+                onClick={() => setActiveTab("relations")}
+                className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${activeTab === "relations" ? "border-indigo-600 text-indigo-600" : "border-transparent text-zinc-500 hover:text-zinc-700"}`}
               >
-                {t.description ? (
-                  <ReactMarkdown
-                    remarkPlugins={[remarkGfm]}
-                    rehypePlugins={[rehypeRaw]}
-                    urlTransform={(url) => url}
-                    components={{
-                      a: (p) => <a {...p} target="_blank" rel="noopener noreferrer" className="text-indigo-600 underline" />,
-                      img: ({ src, alt }) => src ? <img src={src} alt={alt ?? ""} className="max-w-full rounded" /> : null,
-                    }}
-                  >
-                    {t.description}
-                  </ReactMarkdown>
-                ) : (
-                  <span className="italic text-zinc-500">No description. Click to add.</span>
-                )}
-              </div>
+                Relations
+              </button>
             )}
           </div>
-          {isEdit && ticket && !hideChildren && (
-            <ChildrenSection
-              currentTicket={ticket}
-              childTickets={childTickets ?? []}
-              projectKey={projectKey}
-              projectId={projectId}
-              statuses={statuses}
-              fieldValues={fieldValues}
-              allTicketsForParent={allTicketsForParent}
-            />
+
+          {/* Details tab */}
+          {activeTab === "details" && (
+            <>
+              {allTicketsForParent && allTicketsForParent.length > 0 && (!ticket || ticket.type !== "epic") && (
+                <ParentSection
+                  currentTicket={ticket}
+                  parentTicket={currentParent}
+                  allTickets={allTicketsForParent}
+                  projectKey={projectKey}
+                  projectId={projectId}
+                  statuses={statuses}
+                  fieldValues={fieldValues}
+                  onParentChange={handleParentChange}
+                />
+              )}
+              <div className="flex flex-1 flex-col min-h-0">
+                <div className="mb-1 flex items-center justify-between">
+                  <label className="text-sm text-zinc-500">Description</label>
+                  <div className="flex gap-2 text-xs">
+                    <button
+                      type="button"
+                      onClick={() => setDescMode("edit")}
+                      className={`rounded px-2 py-0.5 ${descMode === "edit" ? "bg-indigo-600 text-white" : "bg-zinc-200 text-zinc-700"}`}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDescMode("preview")}
+                      className={`rounded px-2 py-0.5 ${descMode === "preview" ? "bg-indigo-600 text-white" : "bg-zinc-200 text-zinc-700"}`}
+                    >
+                      Preview
+                    </button>
+                  </div>
+                </div>
+                {descMode === "edit" ? (
+                  <MarkdownEditor
+                    value={t.description ?? ""}
+                    onChange={(v) => set("description", v)}
+                    onPaste={onPaste}
+                    rows={12}
+                    placeholder="Markdown supported. Paste image to embed. Use toolbar above."
+                    className="flex-1 min-h-[200px]"
+                  />
+                ) : (
+                  <div
+                    onClick={() => setDescMode("edit")}
+                    className="flex-1 min-h-[200px] overflow-y-auto cursor-text rounded border border-zinc-200 bg-white px-3 py-3 text-sm leading-relaxed text-zinc-800 [&_a]:text-indigo-600 [&_a]:underline [&_code]:rounded [&_code]:bg-zinc-100 [&_code]:px-1 [&_code]:py-0.5 [&_h1]:mt-2 [&_h1]:mb-2 [&_h1]:text-xl [&_h1]:font-semibold [&_h2]:mt-2 [&_h2]:mb-1 [&_h2]:text-lg [&_h2]:font-semibold [&_h3]:mt-2 [&_h3]:font-semibold [&_img]:my-2 [&_img]:max-w-full [&_img]:rounded [&_li]:my-0.5 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:my-2 [&_pre]:my-2 [&_pre]:overflow-x-auto [&_pre]:rounded [&_pre]:bg-zinc-100 [&_pre]:p-3 [&_ul]:list-disc [&_ul]:pl-5"
+                  >
+                    {t.description ? (
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
+                        rehypePlugins={[rehypeRaw]}
+                        urlTransform={(url) => url}
+                        components={{
+                          a: (p) => <a {...p} target="_blank" rel="noopener noreferrer" className="text-indigo-600 underline" />,
+                          img: ({ src, alt }) => src ? <img src={src} alt={alt ?? ""} className="max-w-full rounded" /> : null,
+                        }}
+                      >
+                        {t.description}
+                      </ReactMarkdown>
+                    ) : (
+                      <span className="italic text-zinc-500">No description. Click to add.</span>
+                    )}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+
+          {/* Relations tab */}
+          {activeTab === "relations" && isEdit && ticket && (
+            <div className="flex flex-col gap-6">
+              {allTicketsForParent && allTicketsForParent.length > 0 && ticket.type !== "epic" && (
+                <div>
+                  <h3 className="mb-2 text-sm font-medium text-zinc-700">Parent</h3>
+                  <ParentSection
+                    currentTicket={ticket}
+                    parentTicket={currentParent}
+                    allTickets={allTicketsForParent}
+                    projectKey={projectKey}
+                    projectId={projectId}
+                    statuses={statuses}
+                    fieldValues={fieldValues}
+                    onParentChange={handleParentChange}
+                  />
+                </div>
+              )}
+              {!hideChildren && (
+                <div>
+                  <h3 className="mb-2 text-sm font-medium text-zinc-700">Children</h3>
+                  <ChildrenSection
+                    currentTicket={ticket}
+                    childTickets={childTickets ?? []}
+                    projectKey={projectKey}
+                    projectId={projectId}
+                    statuses={statuses}
+                    fieldValues={fieldValues}
+                    allTicketsForParent={allTicketsForParent}
+                  />
+                </div>
+              )}
+            </div>
           )}
         </div>
 

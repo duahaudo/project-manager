@@ -1,6 +1,7 @@
 "use client";
 import { useState, useTransition, useEffect } from "react";
 import Link from "next/link";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 import {
   DndContext,
   DragOverlay,
@@ -59,7 +60,7 @@ function SortableRow({
           {epic.title}
         </Link>
       </td>
-      <td className="py-2 pr-4 text-zinc-600">{epic.status}</td>
+      <td className="py-2 pr-4"><StatusBadge status={epic.status} /></td>
       <td className="py-2 pr-4 text-zinc-600">{epic.priority}</td>
       <td className="py-2 pr-4 text-zinc-600">{epic.phase ?? "—"}</td>
       <td className="py-2 pr-4 text-zinc-500">{childCount}</td>
@@ -73,7 +74,7 @@ function DragRow({ epic }: { epic: Ticket }) {
       <span className="text-zinc-400">⠿</span>
       <span className="font-mono text-indigo-600 shrink-0">{epic.key}</span>
       <span className="truncate text-zinc-900">{epic.title}</span>
-      <span className="ml-auto text-zinc-500 shrink-0">{epic.status}</span>
+      <StatusBadge status={epic.status} className="ml-auto shrink-0" />
     </div>
   );
 }

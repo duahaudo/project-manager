@@ -1,6 +1,7 @@
 "use client";
 import { useState, useTransition, useMemo } from "react";
 import Link from "next/link";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 import { CopyLinkButton } from "@/components/ticket/CopyLinkButton";
 import {
   DndContext,
@@ -53,7 +54,7 @@ function SortableRow({ ticket, projectKey }: { ticket: Ticket; projectKey: strin
         <span className="block truncate" title={ticket.title}>{ticket.title}</span>
       </td>
       <td className="px-3 whitespace-nowrap">{ticket.type}</td>
-      <td className="px-3 whitespace-nowrap">{ticket.status}</td>
+      <td className="px-3 whitespace-nowrap"><StatusBadge status={ticket.status} /></td>
       <td className="px-3 whitespace-nowrap">{ticket.priority}</td>
       <td className="px-3 whitespace-nowrap">{ticket.phase ?? "—"}</td>
       <td className="px-3 whitespace-nowrap">{ticket.milestone ?? "—"}</td>
@@ -67,7 +68,7 @@ function DragRow({ ticket }: { ticket: Ticket }) {
       <span className="text-zinc-400">⠿</span>
       <span className="font-mono text-indigo-600 shrink-0">{ticket.key}</span>
       <span className="truncate text-zinc-900">{ticket.title}</span>
-      <span className="ml-auto text-zinc-500 shrink-0">{ticket.status}</span>
+      <StatusBadge status={ticket.status} className="ml-auto shrink-0" />
     </div>
   );
 }
