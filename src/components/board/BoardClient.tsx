@@ -5,6 +5,8 @@ import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import type { Project, Ticket } from "@/lib/db/schema";
 import { TicketModal } from "@/components/ticket/TicketModal";
 import { ColumnToggle } from "./ColumnToggle";
+import { RefreshButton } from "@/components/ui/RefreshButton";
+import { Filters, type FilterDef } from "@/components/board/Filters";
 
 type FieldValues = { phase: string[]; milestone: string[]; sprint: string[]; fixVersion: string[] };
 
@@ -29,12 +31,14 @@ export function BoardClient({
   fieldValues,
   allTickets,
   initialSearch = "",
+  filterDefs = [],
 }: {
   project: Project;
   tickets: Ticket[];
   fieldValues: FieldValues;
   allTickets: Ticket[];
   initialSearch?: string;
+  filterDefs?: FilterDef[];
 }) {
   const [open, setOpen] = useState<OpenState>(null);
   const [hiddenStatuses, setHiddenStatuses] = useState<string[]>([]);
@@ -89,27 +93,35 @@ export function BoardClient({
 
   return (
     <div className="flex h-full flex-col">
-      <div className="mb-3 flex shrink-0 items-center gap-2 flex-wrap">
-        <form onSubmit={handleSearch} className="flex items-center gap-1">
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search title or key…"
-            className="w-48 rounded border border-zinc-300 bg-white px-2 py-1 text-sm text-zinc-900 placeholder:text-zinc-400"
-          />
-          <button
-            type="submit"
-            className="rounded border border-zinc-300 bg-white px-2 py-1 text-sm text-zinc-700 hover:bg-zinc-100"
-          >
-            Search
-          </button>
-        </form>
-        <ColumnToggle
-          statuses={project.statuses}
-          hidden={hiddenStatuses}
-          onToggle={toggleStatus}
-        />
+      <div className="mb-3 shrink-0 space-y-2">
+        <div className="flex items-center gap-2">
+          <form onSubmit={handleSearch} className="flex items-center gap-1">
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search title or key…"
+              className="w-48 rounded border border-zinc-300 bg-white px-2 py-1 text-sm text-zinc-900 placeholder:text-zinc-400"
+            />
+            <button
+              type="submit"
+              className="rounded border border-zinc-300 bg-white px-2 py-1 text-sm text-zinc-700 hover:bg-zinc-100"
+            >
+              Search
+            </button>
+          </form>
+          <div className="ml-auto flex items-center gap-2">
+            <ColumnToggle
+              statuses={project.statuses}
+              hidden={hiddenStatuses}
+              onToggle={toggleStatus}
+            />
+            <RefreshButton />
+          </div>
+        </div>
+        {filterDefs.length > 0 && (
+          <Filters defs={filterDefs} storageKey={`board-filters-${project.key}`} />
+        )}
       </div>
       <div className="flex-1 min-h-0">
         <Board

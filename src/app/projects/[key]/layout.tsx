@@ -2,7 +2,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getProjectByKey } from "@/lib/actions/projects";
 import { listFieldValues } from "@/lib/actions/tickets";
-import { RefreshButton } from "@/components/ui/RefreshButton";
 import { NewTicketButton } from "@/components/ticket/NewTicketButton";
 
 export default async function ProjectLayout({
@@ -36,7 +35,6 @@ export default async function ProjectLayout({
               statuses={project.statuses}
               fieldValues={fieldValues}
             />
-            <RefreshButton />
             <Link href={`/projects/${project.key}/board`} className="hover:underline">Board</Link>
             <Link href={`/projects/${project.key}/backlog`} className="hover:underline">Backlog</Link>
             <Link href={`/projects/${project.key}/epics`} className="hover:underline">Epics</Link>

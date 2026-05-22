@@ -21,6 +21,7 @@ import {
 import type { Ticket } from "@/lib/db/schema";
 import { moveTicket } from "@/lib/actions/tickets";
 import { Filters, type FilterDef } from "@/components/board/Filters";
+import { RefreshButton } from "@/components/ui/RefreshButton";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 
 function SortableRow({ ticket, projectKey }: { ticket: Ticket; projectKey: string }) {
@@ -166,20 +167,25 @@ export function BacklogClient({
   return (
     <div>
       <div className="mb-4 space-y-2">
-        <form onSubmit={handleSearch} className="flex items-center gap-2">
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search title or key…"
-            className="w-64 rounded border border-zinc-300 bg-white px-2 py-1 text-sm text-zinc-900 placeholder:text-zinc-400"
-          />
-          <button type="submit" className="rounded border border-zinc-300 bg-white px-2 py-1 text-sm text-zinc-700 hover:bg-zinc-100">
-            Search
-          </button>
-        </form>
+        <div className="flex items-center gap-2">
+          <form onSubmit={handleSearch} className="flex items-center gap-1">
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search title or key…"
+              className="w-64 rounded border border-zinc-300 bg-white px-2 py-1 text-sm text-zinc-900 placeholder:text-zinc-400"
+            />
+            <button type="submit" className="rounded border border-zinc-300 bg-white px-2 py-1 text-sm text-zinc-700 hover:bg-zinc-100">
+              Search
+            </button>
+          </form>
+          <div className="ml-auto flex items-center gap-2">
+            <span className="text-xs text-zinc-500">{filtered.length} of {tickets.length} tickets</span>
+            <RefreshButton />
+          </div>
+        </div>
         <Filters defs={filterDefs} storageKey={`backlog-filters-${projectKey}`} />
-        <div className="text-xs text-zinc-500">{filtered.length} of {tickets.length} tickets</div>
       </div>
       <div className="overflow-x-auto">
         <DndContext

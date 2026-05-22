@@ -1,6 +1,6 @@
 "use server";
 import { db, schema } from "@/lib/db/client";
-import { and, asc, desc, eq, gt, lt, ne } from "drizzle-orm";
+import { and, asc, desc, eq, gt, lt, ne, or } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { uid } from "@/lib/utils";
 import { midpoint, initialRank } from "@/lib/rank";
@@ -192,7 +192,12 @@ export async function getChildTickets(parentId: string, parentType?: string) {
     return db
       .select()
       .from(schema.tickets)
-      .where(and(eq(schema.tickets.epicId, parentId), ne(schema.tickets.id, parentId)))
+      .where(
+        and(
+          or(eq(schema.tickets.epicId, parentId), eq(schema.tickets.parentId, parentId)),
+          ne(schema.tickets.id, parentId)
+        )
+      )
       .orderBy(asc(schema.tickets.rank));
   }
   return db

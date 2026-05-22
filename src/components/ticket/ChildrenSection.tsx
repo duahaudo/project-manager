@@ -33,9 +33,11 @@ const TYPE_COLORS: Record<string, string> = {
 function SortableChild({
   child,
   projectKey,
+  onOpen,
 }: {
   child: Ticket;
   projectKey: string;
+  onOpen: (ticket: Ticket) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: child.id });
   const style = {
@@ -54,9 +56,10 @@ function SortableChild({
       >
         ⠿
       </span>
-      <a
-        href={`/projects/${projectKey}/tickets/${child.key}`}
-        className="flex min-w-0 flex-1 items-center gap-2 rounded border border-zinc-200 bg-zinc-50 px-2 py-1 text-sm hover:bg-zinc-100"
+      <button
+        type="button"
+        onClick={() => onOpen(child)}
+        className="flex min-w-0 flex-1 items-center gap-2 rounded border border-zinc-200 bg-zinc-50 px-2 py-1 text-sm hover:bg-zinc-100 text-left"
       >
         <span className={`shrink-0 rounded px-1.5 py-0.5 text-xs font-medium ${TYPE_COLORS[child.type] ?? "bg-zinc-200 text-zinc-700"}`}>
           {child.type}
@@ -66,7 +69,7 @@ function SortableChild({
           {child.title}
         </span>
         <span className="ml-auto shrink-0 text-xs text-zinc-400">{child.status}</span>
-      </a>
+      </button>
     </li>
   );
 }
@@ -89,6 +92,7 @@ export function ChildrenSection({
   allTicketsForParent?: Ticket[];
 }) {
   const [showModal, setShowModal] = useState(false);
+  const [selectedChild, setSelectedChild] = useState<Ticket | null>(null);
   const [items, setItems] = useState<Ticket[]>(childTickets);
   const [, startTransition] = useTransition();
   const router = useRouter();
@@ -135,7 +139,7 @@ export function ChildrenSection({
           <SortableContext items={items.map((t) => t.id)} strategy={verticalListSortingStrategy}>
             <ul className="space-y-1">
               {items.map((child) => (
-                <SortableChild key={child.id} child={child} projectKey={projectKey} />
+                <SortableChild key={child.id} child={child} projectKey={projectKey} onOpen={setSelectedChild} />
               ))}
             </ul>
           </SortableContext>
@@ -162,6 +166,22 @@ export function ChildrenSection({
           defaultEpicId={defaultEpicId}
           onClose={() => {
             setShowModal(false);
+            router.refresh();
+          }}
+        />
+      )}
+      {selectedChild && (
+        <TicketModal
+          mode="edit"
+          ticket={selectedChild}
+          projectId={projectId}
+          projectKey={projectKey}
+          statuses={statuses}
+          fieldValues={fieldValues}
+          allTickets={[]}
+          allTicketsForParent={allTicketsForParent}
+          onClose={() => {
+            setSelectedChild(null);
             router.refresh();
           }}
         />

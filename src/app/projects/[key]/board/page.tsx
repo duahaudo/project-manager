@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { getProjectByKey } from "@/lib/actions/projects";
 import { listTicketsByProject, listEpicTicketsByProject, listFieldValues } from "@/lib/actions/tickets";
 import { BoardClient } from "@/components/board/BoardClient";
-import { Filters, type FilterDef } from "@/components/board/Filters";
+import { type FilterDef } from "@/components/board/Filters";
 
 const PRIORITY_OPTS = [
   { value: "highest", label: "Highest" },
@@ -82,11 +82,8 @@ export default async function BoardPage({
 
   return (
     <div className="flex flex-col flex-1 min-h-0 px-3 pt-4 sm:px-6 sm:pt-4">
-      <div className="mb-3 shrink-0">
-        <Filters defs={defs} storageKey={`board-filters-${key}`} />
-      </div>
       <div className="flex-1 min-h-0">
-        <BoardClient project={project} tickets={filtered} fieldValues={fieldValues} allTickets={all} initialSearch={sp.q ?? ""} />
+        <BoardClient project={project} tickets={filtered} fieldValues={fieldValues} allTickets={all} initialSearch={sp.q ?? ""} filterDefs={defs} />
       </div>
     </div>
   );
