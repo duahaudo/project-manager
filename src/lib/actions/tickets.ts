@@ -171,7 +171,7 @@ export async function moveTicket(input: {
 
 export async function deleteTicket(id: string) {
   const t = await db
-    .select({ key: schema.tickets.key })
+    .select({ key: schema.tickets.key, parentId: schema.tickets.parentId })
     .from(schema.tickets)
     .where(eq(schema.tickets.id, id))
     .limit(1);
@@ -182,6 +182,17 @@ export async function deleteTicket(id: string) {
     revalidatePath(`/projects/${projectKey}/backlog`);
     revalidatePath(`/projects/${projectKey}/tickets/${t[0].key}`);
     revalidatePath(`/projects/${projectKey}/epics`);
+    if (t[0].parentId) {
+      const parent = await db
+        .select({ key: schema.tickets.key })
+        .from(schema.tickets)
+        .where(eq(schema.tickets.id, t[0].parentId))
+        .limit(1);
+      if (parent[0]) {
+        revalidatePath(`/projects/${projectKey}/tickets/${parent[0].key}`);
+        revalidatePath(`/projects/${projectKey}/epics/${parent[0].key}`);
+      }
+    }
   }
 }
 
