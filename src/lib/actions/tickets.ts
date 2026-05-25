@@ -80,6 +80,7 @@ export async function createTicket(input: z.infer<typeof TicketCreateSchema>) {
 
   revalidatePath(`/projects/${proj.key}/board`);
   revalidatePath(`/projects/${proj.key}/backlog`);
+  revalidatePath(`/projects/${proj.key}/epics`);
   return { id, key };
 }
 

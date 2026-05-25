@@ -1,13 +1,7 @@
-// Simple lexorank-style midpoint generator using base36 strings.
-// Ranks are sortable lexicographically. To insert between A and B, midpoint(A, B).
-
-const MIN = "0";
-const MAX = "z";
-
 function charToNum(c: string): number {
   const code = c.charCodeAt(0);
-  if (code >= 48 && code <= 57) return code - 48; // 0-9
-  if (code >= 97 && code <= 122) return code - 97 + 10; // a-z
+  if (code >= 48 && code <= 57) return code - 48;
+  if (code >= 97 && code <= 122) return code - 97 + 10;
   return 0;
 }
 
@@ -17,22 +11,27 @@ function numToChar(n: number): string {
 }
 
 export function midpoint(a: string | null, b: string | null): string {
-  const left = a ?? MIN.repeat(1);
-  const right = b ?? MAX.repeat(1);
-  const max = Math.max(left.length, right.length) + 1;
-  let result = "";
-  let carry = 0;
-  for (let i = 0; i < max; i++) {
+  if (a === null && b === null) return "m";
+  // No upper bound: append "m" to produce something strictly greater than a
+  if (b === null) return a! + "m";
+
+  const left = a ?? "0";
+  const right = b;
+
+  for (let i = 0; ; i++) {
     const l = i < left.length ? charToNum(left[i]) : 0;
-    const r = i < right.length ? charToNum(right[i]) : 35;
-    const sum = l + r + carry;
-    const half = Math.floor(sum / 2);
-    carry = (sum % 2) * 36;
-    result += numToChar(half);
-    if (carry === 0 && result > left && result < right) break;
+    const r = i < right.length ? charToNum(right[i]) : 36; // 36 = virtual "past z"
+
+    if (l === r) continue; // same digit, descend deeper
+
+    const mid = Math.floor((l + r) / 2);
+    if (mid > l) {
+      return left.slice(0, i) + numToChar(mid);
+    }
+    // r === l + 1: no room at this digit, descend under left[i]
+    const suffix = midpoint(left.slice(i + 1) || null, null);
+    return left.slice(0, i + 1) + suffix;
   }
-  if (result <= left) result = left + "m";
-  return result;
 }
 
 export function initialRank(): string {

@@ -1,0 +1,13 @@
+services:
+  project-manager:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "9005:9005"
+    volumes:
+      - ./data:/app/data
+    environment:
+      - NODE_ENV=production
+      - PORT=9005
+    restart: unless-stopped
