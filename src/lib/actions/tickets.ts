@@ -126,7 +126,9 @@ export async function updateTicket(input: z.infer<typeof TicketUpdateSchema>) {
   if (t[0]) {
     const projectKey = t[0].key.split("-").slice(0, -1).join("-");
     revalidatePath(`/projects/${projectKey}/board`);
+    revalidatePath(`/projects/${projectKey}/backlog`);
     revalidatePath(`/projects/${projectKey}/tickets/${t[0].key}`);
+    revalidatePath(`/projects/${projectKey}/epics`);
     if (t[0].type === "epic") {
       revalidatePath(`/projects/${projectKey}/epics/${t[0].key}`);
     }
@@ -177,6 +179,9 @@ export async function deleteTicket(id: string) {
   if (t[0]) {
     const projectKey = t[0].key.split("-").slice(0, -1).join("-");
     revalidatePath(`/projects/${projectKey}/board`);
+    revalidatePath(`/projects/${projectKey}/backlog`);
+    revalidatePath(`/projects/${projectKey}/tickets/${t[0].key}`);
+    revalidatePath(`/projects/${projectKey}/epics`);
   }
 }
 
@@ -309,5 +314,8 @@ export async function createEpicTicket(input: {
     .set({ ticketCounter: nextNum })
     .where(eq(schema.projects.id, input.projectId));
 
+  revalidatePath(`/projects/${proj.key}/board`);
+  revalidatePath(`/projects/${proj.key}/backlog`);
+  revalidatePath(`/projects/${proj.key}/epics`);
   return { id, key };
 }
