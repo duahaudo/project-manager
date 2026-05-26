@@ -194,11 +194,6 @@ export function ChildrenSection({
     });
   }
 
-  const defaultEpicId =
-    currentTicket.type === "epic"
-      ? currentTicket.id
-      : (currentTicket.epicId ?? undefined);
-
   return (
     <div className="space-y-2">
       <label className="text-xs text-zinc-500">Children</label>
@@ -233,7 +228,6 @@ export function ChildrenSection({
           allTickets={[]}
           allTicketsForParent={allTicketsForParent}
           defaultParentId={currentTicket.id}
-          defaultEpicId={defaultEpicId}
           onClose={() => {
             setShowModal(false);
             router.refresh();

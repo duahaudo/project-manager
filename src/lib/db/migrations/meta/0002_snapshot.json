@@ -1,8 +1,8 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "ff0b83c0-1198-4180-9255-d1c2b414e066",
-  "prevId": "a2c8e52d-ed4f-4163-97f4-e38678e394d7",
+  "id": "bb11cc22-dd33-ee44-ff55-001122334455",
+  "prevId": "ff0b83c0-1198-4180-9255-d1c2b414e066",
   "tables": {
     "comments": {
       "name": "comments",

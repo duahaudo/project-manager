@@ -18,7 +18,7 @@ const TicketSchema = z.object({
   type: z.enum(["story", "bug", "task", "epic"]).optional(),
   priority: z.enum(["lowest", "low", "med", "high", "highest"]).optional(),
   status: z.string().optional(),
-  epicLocalId: z.string().optional(), // refers to _localId in epics array
+  epicLocalId: z.string().optional(), // refers to _localId in epics array — resolved to parentId
   storyPoints: z.number().int().nullable().optional(),
   labels: z.array(z.string()).optional(),
   sprint: z.string().nullable().optional(),
@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
         type: t.type ?? "task",
         priority: t.priority ?? "med",
         status: t.status,
-        epicId: t.epicLocalId ? epicIdMap[t.epicLocalId] : undefined,
+        parentId: t.epicLocalId ? epicIdMap[t.epicLocalId] : undefined,
         storyPoints: t.storyPoints ?? undefined,
         labels: t.labels,
         sprint: t.sprint ?? undefined,

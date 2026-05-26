@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { getProjectByKey } from "@/lib/actions/projects";
-import { listTicketsByProject, listEpicTicketsByProject, listFieldValues } from "@/lib/actions/tickets";
+import { listTicketsByProjectWithJira, listEpicTicketsByProject, listFieldValues } from "@/lib/actions/tickets";
+import { getJiraConfig } from "@/lib/db/schema";
 import { BoardClient } from "@/components/board/BoardClient";
 import { type FilterDef } from "@/components/board/Filters";
 
@@ -35,9 +36,18 @@ export default async function BoardPage({
   const project = await getProjectByKey(key);
   if (!project) notFound();
 
-  const all = await listTicketsByProject(project.id);
+  const jiraConfig = getJiraConfig(project);
+  const all = await listTicketsByProjectWithJira(project);
   const epics = await listEpicTicketsByProject(project.id);
   const fieldValues = await listFieldValues(project.id);
+
+  // For JIRA projects, derive statuses from fetched ticket data
+  const effectiveStatuses = jiraConfig
+    ? Array.from(new Set(all.map((t) => t.status)))
+    : project.statuses;
+  const effectiveProject = jiraConfig
+    ? { ...project, statuses: effectiveStatuses }
+    : project;
 
   function getVals(param: string | undefined): string[] {
     if (!param) return [];
@@ -52,7 +62,7 @@ export default async function BoardPage({
     const fixVersions = getVals(sp.fixVersion);
     const priorities = getVals(sp.priority);
     const types = getVals(sp.type);
-    if (epics.length && !epics.includes(t.epicId ?? "")) return false;
+    if (epics.length && !epics.includes(t.parentId ?? "")) return false;
     if (phases.length && !phases.includes(t.phase ?? "")) return false;
     if (milestones.length && !milestones.includes(t.milestone ?? "")) return false;
     if (sprints.length && !sprints.includes(t.sprint ?? "")) return false;
@@ -83,7 +93,7 @@ export default async function BoardPage({
   return (
     <div className="flex flex-col flex-1 min-h-0 px-3 pt-4 sm:px-6 sm:pt-4">
       <div className="flex-1 min-h-0">
-        <BoardClient project={project} tickets={filtered} fieldValues={fieldValues} allTickets={all} epicTickets={epics} initialSearch={sp.q ?? ""} filterDefs={defs} />
+        <BoardClient project={effectiveProject} tickets={filtered} fieldValues={fieldValues} allTickets={all} epicTickets={epics} initialSearch={sp.q ?? ""} filterDefs={defs} />
       </div>
     </div>
   );

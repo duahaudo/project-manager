@@ -94,8 +94,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
             description: "Priority level",
           },
           status: { type: "string", description: "Initial status (defaults to first project status)" },
-          epicId: { type: "string", description: "Epic ticket ID to link this ticket to" },
-          parentId: { type: "string", description: "Parent ticket ID (for tasks under a story)" },
+          parentId: { type: "string", description: "Parent ticket ID (for tasks under a story or children of an epic)" },
           storyPoints: { type: "number", description: "Story points estimate" },
           sprint: { type: "string", description: "Sprint name" },
           milestone: { type: "string", description: "Milestone name" },
@@ -126,7 +125,6 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
           milestone: { type: "string", description: "Milestone name" },
           phase: { type: "string", description: "Phase name" },
           labels: { type: "array", items: { type: "string" } },
-          epicId: { type: "string", description: "Epic ticket ID" },
           parentId: { type: "string", description: "Parent ticket ID" },
         },
       },
@@ -264,7 +262,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                   milestone: t.milestone,
                   phase: t.phase,
                   labels: t.labels,
-                  epicId: t.epicId,
                   parentId: t.parentId,
                   description: t.description,
                   createdAt: t.createdAt,
@@ -287,7 +284,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         type = "task",
         priority = "med",
         status,
-        epicId,
         parentId,
         storyPoints,
         sprint,
@@ -301,7 +297,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         type?: string;
         priority?: string;
         status?: string;
-        epicId?: string;
         parentId?: string;
         storyPoints?: number;
         sprint?: string;
@@ -340,30 +335,31 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       const rank = last[0] ? midpoint(last[0].rank, null) : initialRank();
 
       const id = randomUUID();
-      await db.insert(schema.tickets).values({
-        id,
-        key,
-        projectId: project.id,
-        title,
-        description: description ?? null,
-        type: type as "story" | "bug" | "task" | "epic",
-        priority: priority as "lowest" | "low" | "med" | "high" | "highest",
-        status: ticketStatus,
-        epicId: epicId ?? null,
-        parentId: parentId ?? null,
-        storyPoints: storyPoints ?? null,
-        sprint: sprint ?? null,
-        milestone: milestone ?? null,
-        phase: phase ?? null,
-        labels: labels ?? [],
-        relatedIds: [],
-        rank,
-      });
+      await db.transaction(async (tx) => {
+        await tx.insert(schema.tickets).values({
+          id,
+          key,
+          projectId: project.id,
+          title,
+          description: description ?? null,
+          type: type as "story" | "bug" | "task" | "epic",
+          priority: priority as "lowest" | "low" | "med" | "high" | "highest",
+          status: ticketStatus,
+          parentId: parentId ?? null,
+          storyPoints: storyPoints ?? null,
+          sprint: sprint ?? null,
+          milestone: milestone ?? null,
+          phase: phase ?? null,
+          labels: labels ?? [],
+          relatedIds: [],
+          rank,
+        });
 
-      await db
-        .update(schema.projects)
-        .set({ ticketCounter: nextNum })
-        .where(eq(schema.projects.id, project.id));
+        await tx
+          .update(schema.projects)
+          .set({ ticketCounter: nextNum })
+          .where(eq(schema.projects.id, project.id));
+      });
 
       return {
         content: [
@@ -388,7 +384,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         milestone?: string;
         phase?: string;
         labels?: string[];
-        epicId?: string;
         parentId?: string;
       };
 
@@ -415,7 +410,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       if (fields.milestone !== undefined) updates.milestone = fields.milestone;
       if (fields.phase !== undefined) updates.phase = fields.phase;
       if (fields.labels !== undefined) updates.labels = fields.labels;
-      if (fields.epicId !== undefined) updates.epicId = fields.epicId;
       if (fields.parentId !== undefined) updates.parentId = fields.parentId;
 
       await db

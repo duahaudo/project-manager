@@ -1,6 +1,9 @@
 import { notFound } from "next/navigation";
 import { getProjectByKey } from "@/lib/actions/projects";
-import { getTicketByKey, listAllTicketsByProject, listFieldValues, getParentTicket, getChildTickets } from "@/lib/actions/tickets";
+import { getTicketByKey, listAllTicketsByProject, listTicketsByProjectWithJira, listFieldValues, getParentTicket, getChildTickets } from "@/lib/actions/tickets";
+import { getJiraConfig } from "@/lib/db/schema";
+import { fetchJiraIssue } from "@/lib/jira/client";
+import { mapJiraIssueToTicket } from "@/lib/jira/mappers";
 import { TicketDetailClient } from "@/components/ticket/TicketDetailClient";
 import { CopyLinkButton } from "@/components/ticket/CopyLinkButton";
 import { BackButton } from "@/components/ticket/BackButton";
@@ -17,15 +20,47 @@ export default async function TicketDetailPage({
   const project = await getProjectByKey(key);
   if (!project) notFound();
 
-  const ticket = await getTicketByKey(ticketKey);
-  if (!ticket) notFound();
+  const jiraConfig = getJiraConfig(project);
+  let ticket;
+  let jiraComments: Array<{ id: string; author: string; body: string; createdAt: Date }> = [];
+  if (jiraConfig) {
+    const issue = await fetchJiraIssue(
+      { baseUrl: jiraConfig.baseUrl, email: jiraConfig.email, apiToken: jiraConfig.apiToken },
+      ticketKey
+    );
+    ticket = {
+      ...mapJiraIssueToTicket(issue, project.id, jiraConfig.statusMap),
+      rank: "0",
+      updatedAt: new Date(issue.fields.updated),
+    };
+    const { fetchJiraComments } = await import("@/lib/jira/client");
+    const { adfToMarkdown } = await import("@/lib/jira/adf-to-markdown");
+    const rawComments = await fetchJiraComments(
+      { baseUrl: jiraConfig.baseUrl, email: jiraConfig.email, apiToken: jiraConfig.apiToken },
+      ticketKey
+    );
+    jiraComments = rawComments.map((c) => ({
+      id: c.id,
+      author: c.author.displayName,
+      body: c.body ? adfToMarkdown(c.body as import("@/lib/jira/types").AdfDocument) : "",
+      createdAt: new Date(c.created),
+    }));
+  } else {
+    ticket = await getTicketByKey(ticketKey);
+    if (!ticket) notFound();
+  }
 
-  const [allTicketsForParent, fieldValues, parentTicket, childTickets] = await Promise.all([
-    listAllTicketsByProject(project.id),
+  const allTickets = jiraConfig
+    ? await listTicketsByProjectWithJira(project)
+    : await listAllTicketsByProject(project.id);
+
+  const [fieldValues, parentTicket, childTickets] = await Promise.all([
     listFieldValues(project.id),
-    getParentTicket(ticket.parentId, ticket.epicId),
-    getChildTickets(ticket.id, ticket.type),
+    jiraConfig ? Promise.resolve(null) : getParentTicket(ticket.parentId),
+    jiraConfig ? Promise.resolve([]) : getChildTickets(ticket.id, ticket.type),
   ]);
+
+  const allTicketsForParent = allTickets;
 
   const ticketUrl = `/projects/${key}/tickets/${ticketKey}`;
   const backLabel = from === "backlog" ? "← Backlog" : "← Board";
@@ -58,6 +93,7 @@ export default async function TicketDetailPage({
           parentTicket={parentTicket}
           childTickets={childTickets}
           allTicketsForParent={allTicketsForParent}
+          jiraComments={jiraComments}
         />
       </div>
     </div>

@@ -16,6 +16,11 @@ export const projects = sqliteTable("projects", {
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .default(sql`(unixepoch())`),
+  jiraBaseUrl: text("jira_base_url"),
+  jiraEmail: text("jira_email"),
+  jiraApiToken: text("jira_api_token"),
+  jiraProjectKey: text("jira_project_key"),
+  jiraStatusMap: text("jira_status_map", { mode: "json" }).$type<Record<string, string>>(),
 });
 
 export const tickets = sqliteTable("tickets", {
@@ -24,7 +29,6 @@ export const tickets = sqliteTable("tickets", {
   projectId: text("project_id")
     .notNull()
     .references(() => projects.id, { onDelete: "cascade" }),
-  epicId: text("epic_id").references((): AnySQLiteColumn => tickets.id, { onDelete: "set null" }),
   parentId: text("parent_id").references((): AnySQLiteColumn => tickets.id, { onDelete: "set null" }),
   relatedIds: text("related_ids", { mode: "json" })
     .notNull()
@@ -77,3 +81,24 @@ export const comments = sqliteTable("comments", {
 export type Project = typeof projects.$inferSelect;
 export type Ticket = typeof tickets.$inferSelect;
 export type Comment = typeof comments.$inferSelect;
+
+export type JiraConfig = {
+  baseUrl: string;
+  email: string;
+  apiToken: string;
+  projectKey: string;
+  statusMap: Record<string, string>;
+};
+
+export function getJiraConfig(project: Project): JiraConfig | null {
+  if (!project.jiraBaseUrl || !project.jiraEmail || !project.jiraApiToken || !project.jiraProjectKey) {
+    return null;
+  }
+  return {
+    baseUrl: project.jiraBaseUrl,
+    email: project.jiraEmail,
+    apiToken: project.jiraApiToken,
+    projectKey: project.jiraProjectKey,
+    statusMap: project.jiraStatusMap ?? {},
+  };
+}

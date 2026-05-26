@@ -1,10 +1,18 @@
 "use server";
 import { db, schema } from "@/lib/db/client";
-import { and, asc, desc, eq, gt, lt, ne, or } from "drizzle-orm";
+import { and, asc, desc, eq, ne } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { uid } from "@/lib/utils";
 import { midpoint, initialRank } from "@/lib/rank";
 import { z } from "zod";
+import { getJiraConfig, type Project } from "@/lib/db/schema";
+import {
+  listJiraTicketsByProject,
+  createJiraTicket,
+  updateJiraTicket,
+  moveJiraTicket,
+  deleteJiraTicket,
+} from "./jira-tickets";
 
 const TicketCreateSchema = z.object({
   projectId: z.string(),
@@ -13,7 +21,6 @@ const TicketCreateSchema = z.object({
   type: z.enum(["story", "bug", "task", "epic"]).default("task"),
   priority: z.enum(["lowest", "low", "med", "high", "highest"]).default("med"),
   status: z.string().optional(),
-  epicId: z.string().optional(),
   storyPoints: z.number().int().optional(),
   labels: z.array(z.string()).optional(),
   sprint: z.string().optional(),
@@ -36,6 +43,23 @@ export async function createTicket(input: z.infer<typeof TicketCreateSchema>) {
     .limit(1);
   if (!project[0]) throw new Error("Project not found");
   const proj = project[0];
+
+  const jiraConfig = getJiraConfig(proj);
+  if (jiraConfig !== null) {
+    const result = await createJiraTicket(jiraConfig, {
+      title: data.title,
+      description: data.description,
+      type: data.type,
+      priority: data.priority,
+      labels: data.labels,
+      fixVersion: data.fixVersion ?? undefined,
+    });
+    revalidatePath(`/projects/${proj.key}/board`);
+    revalidatePath(`/projects/${proj.key}/backlog`);
+    revalidatePath(`/projects/${proj.key}/epics`);
+    return result;
+  }
+
   const nextNum = proj.ticketCounter + 1;
   const key = `${proj.key}-${nextNum}`;
   const status = data.status ?? (proj.statuses[0] ?? "Backlog");
@@ -54,7 +78,6 @@ export async function createTicket(input: z.infer<typeof TicketCreateSchema>) {
     id,
     key,
     projectId: data.projectId,
-    epicId: data.epicId ?? null,
     title: data.title,
     description: data.description ?? null,
     type: data.type,
@@ -91,7 +114,6 @@ const TicketUpdateSchema = z.object({
   type: z.enum(["story", "bug", "task", "epic"]).optional(),
   priority: z.enum(["lowest", "low", "med", "high", "highest"]).optional(),
   status: z.string().optional(),
-  epicId: z.string().nullable().optional(),
   storyPoints: z.number().int().nullable().optional(),
   labels: z.array(z.string()).optional(),
   sprint: z.string().nullable().optional(),
@@ -109,6 +131,44 @@ const TicketUpdateSchema = z.object({
 export async function updateTicket(input: z.infer<typeof TicketUpdateSchema>) {
   const data = TicketUpdateSchema.parse(input);
   const { id, startDate, endDate, ...rest } = data;
+
+  const ticketRows = await db
+    .select({ key: schema.tickets.key, type: schema.tickets.type, projectId: schema.tickets.projectId })
+    .from(schema.tickets)
+    .where(eq(schema.tickets.id, id))
+    .limit(1);
+
+  if (ticketRows[0]) {
+    const ticket = ticketRows[0];
+    const projectRows = await db
+      .select()
+      .from(schema.projects)
+      .where(eq(schema.projects.id, ticket.projectId))
+      .limit(1);
+    const proj = projectRows[0];
+    if (proj) {
+      const jiraConfig = getJiraConfig(proj);
+      if (jiraConfig !== null) {
+        await updateJiraTicket(jiraConfig, ticket.key, {
+          title: data.title,
+          description: data.description ?? undefined,
+          priority: data.priority,
+          labels: data.labels,
+          status: data.status,
+        });
+        const projectKey = ticket.key.split("-").slice(0, -1).join("-");
+        revalidatePath(`/projects/${projectKey}/board`);
+        revalidatePath(`/projects/${projectKey}/backlog`);
+        revalidatePath(`/projects/${projectKey}/tickets/${ticket.key}`);
+        revalidatePath(`/projects/${projectKey}/epics`);
+        if (ticket.type === "epic") {
+          revalidatePath(`/projects/${projectKey}/epics/${ticket.key}`);
+        }
+        return;
+      }
+    }
+  }
+
   await db
     .update(schema.tickets)
     .set({
@@ -118,19 +178,15 @@ export async function updateTicket(input: z.infer<typeof TicketUpdateSchema>) {
       updatedAt: new Date(),
     })
     .where(eq(schema.tickets.id, id));
-  const t = await db
-    .select({ key: schema.tickets.key, type: schema.tickets.type })
-    .from(schema.tickets)
-    .where(eq(schema.tickets.id, id))
-    .limit(1);
-  if (t[0]) {
-    const projectKey = t[0].key.split("-").slice(0, -1).join("-");
+  if (ticketRows[0]) {
+    const t = ticketRows[0];
+    const projectKey = t.key.split("-").slice(0, -1).join("-");
     revalidatePath(`/projects/${projectKey}/board`);
     revalidatePath(`/projects/${projectKey}/backlog`);
-    revalidatePath(`/projects/${projectKey}/tickets/${t[0].key}`);
+    revalidatePath(`/projects/${projectKey}/tickets/${t.key}`);
     revalidatePath(`/projects/${projectKey}/epics`);
-    if (t[0].type === "epic") {
-      revalidatePath(`/projects/${projectKey}/epics/${t[0].key}`);
+    if (t.type === "epic") {
+      revalidatePath(`/projects/${projectKey}/epics/${t.key}`);
     }
   }
 }
@@ -141,6 +197,33 @@ export async function moveTicket(input: {
   beforeId?: string | null;
   afterId?: string | null;
 }) {
+  const ticketRows = await db
+    .select({ key: schema.tickets.key, projectId: schema.tickets.projectId })
+    .from(schema.tickets)
+    .where(eq(schema.tickets.id, input.id))
+    .limit(1);
+
+  if (ticketRows[0]) {
+    const ticket = ticketRows[0];
+    const projectRows = await db
+      .select()
+      .from(schema.projects)
+      .where(eq(schema.projects.id, ticket.projectId))
+      .limit(1);
+    const proj = projectRows[0];
+    if (proj) {
+      const jiraConfig = getJiraConfig(proj);
+      if (jiraConfig !== null) {
+        await moveJiraTicket(jiraConfig, ticket.key, input.status);
+        const projectKey = ticket.key.split("-").slice(0, -1).join("-");
+        revalidatePath(`/projects/${projectKey}/board`);
+        revalidatePath(`/projects/${projectKey}/backlog`);
+        revalidatePath(`/projects/${projectKey}/epics`);
+        return;
+      }
+    }
+  }
+
   const [beforeRows, afterRows] = await Promise.all([
     input.beforeId
       ? db.select({ rank: schema.tickets.rank }).from(schema.tickets).where(eq(schema.tickets.id, input.beforeId)).limit(1)
@@ -156,13 +239,8 @@ export async function moveTicket(input: {
     .set({ status: input.status, rank, updatedAt: new Date() })
     .where(eq(schema.tickets.id, input.id));
 
-  const t = await db
-    .select({ key: schema.tickets.key })
-    .from(schema.tickets)
-    .where(eq(schema.tickets.id, input.id))
-    .limit(1);
-  if (t[0]) {
-    const projectKey = t[0].key.split("-").slice(0, -1).join("-");
+  if (ticketRows[0]) {
+    const projectKey = ticketRows[0].key.split("-").slice(0, -1).join("-");
     revalidatePath(`/projects/${projectKey}/board`);
     revalidatePath(`/projects/${projectKey}/backlog`);
     revalidatePath(`/projects/${projectKey}/epics`);
@@ -171,10 +249,32 @@ export async function moveTicket(input: {
 
 export async function deleteTicket(id: string) {
   const t = await db
-    .select({ key: schema.tickets.key, parentId: schema.tickets.parentId })
+    .select({ key: schema.tickets.key, parentId: schema.tickets.parentId, projectId: schema.tickets.projectId })
     .from(schema.tickets)
     .where(eq(schema.tickets.id, id))
     .limit(1);
+
+  if (t[0]) {
+    const projectRows = await db
+      .select()
+      .from(schema.projects)
+      .where(eq(schema.projects.id, t[0].projectId))
+      .limit(1);
+    const proj = projectRows[0];
+    if (proj) {
+      const jiraConfig = getJiraConfig(proj);
+      if (jiraConfig !== null) {
+        await deleteJiraTicket(jiraConfig, t[0].key);
+        const projectKey = t[0].key.split("-").slice(0, -1).join("-");
+        revalidatePath(`/projects/${projectKey}/board`);
+        revalidatePath(`/projects/${projectKey}/backlog`);
+        revalidatePath(`/projects/${projectKey}/tickets/${t[0].key}`);
+        revalidatePath(`/projects/${projectKey}/epics`);
+        return;
+      }
+    }
+  }
+
   await db.delete(schema.tickets).where(eq(schema.tickets.id, id));
   if (t[0]) {
     const projectKey = t[0].key.split("-").slice(0, -1).join("-");
@@ -204,19 +304,19 @@ export async function listAllTicketsByProject(projectId: string) {
     .orderBy(asc(schema.tickets.rank));
 }
 
-export async function getChildTickets(parentId: string, parentType?: string) {
-  if (parentType === "epic") {
-    return db
-      .select()
-      .from(schema.tickets)
-      .where(
-        and(
-          or(eq(schema.tickets.epicId, parentId), eq(schema.tickets.parentId, parentId)),
-          ne(schema.tickets.id, parentId)
-        )
-      )
-      .orderBy(asc(schema.tickets.rank));
+export async function listTicketsByProjectWithJira(project: Project): Promise<typeof schema.tickets.$inferSelect[]> {
+  const jiraConfig = getJiraConfig(project);
+  if (jiraConfig !== null) {
+    return listJiraTicketsByProject(jiraConfig, project.id);
   }
+  return db
+    .select()
+    .from(schema.tickets)
+    .where(eq(schema.tickets.projectId, project.id))
+    .orderBy(asc(schema.tickets.rank));
+}
+
+export async function getChildTickets(parentId: string, parentType?: string) {
   return db
     .select()
     .from(schema.tickets)
@@ -224,10 +324,9 @@ export async function getChildTickets(parentId: string, parentType?: string) {
     .orderBy(asc(schema.tickets.rank));
 }
 
-export async function getParentTicket(parentId: string | null | undefined, epicId?: string | null) {
-  const id = parentId ?? epicId;
-  if (!id) return null;
-  const rows = await db.select().from(schema.tickets).where(eq(schema.tickets.id, id)).limit(1);
+export async function getParentTicket(parentId: string | null | undefined) {
+  if (!parentId) return null;
+  const rows = await db.select().from(schema.tickets).where(eq(schema.tickets.id, parentId)).limit(1);
   return rows[0] ?? null;
 }
 

@@ -3,6 +3,8 @@ import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createProject } from "@/lib/actions/projects";
 
+const LOCAL_COLUMNS = ["Backlog", "To Do", "In Progress", "In Review", "Done", "Cancelled"];
+
 export function NewProjectModal({
   hasProjects,
   onClose,
@@ -18,6 +20,17 @@ export function NewProjectModal({
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const router = useRouter();
+
+  // JIRA connector state
+  const [jiraEnabled, setJiraEnabled] = useState(false);
+  const [jiraBaseUrl, setJiraBaseUrl] = useState("");
+  const [jiraEmail, setJiraEmail] = useState("");
+  const [jiraApiToken, setJiraApiToken] = useState("");
+  const [jiraProjectKey, setJiraProjectKey] = useState("");
+  const [jiraStatuses, setJiraStatuses] = useState<string[]>([]);
+  const [jiraStatusMap, setJiraStatusMap] = useState<Record<string, string>>({});
+  const [testingConnection, setTestingConnection] = useState(false);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -35,11 +48,66 @@ export function NewProjectModal({
     };
   }, []);
 
+  function handleJiraToggle(checked: boolean) {
+    setJiraEnabled(checked);
+    if (!checked) {
+      setJiraBaseUrl("");
+      setJiraEmail("");
+      setJiraApiToken("");
+      setJiraProjectKey("");
+      setJiraStatuses([]);
+      setJiraStatusMap({});
+      setConnectionError(null);
+    }
+  }
+
+  async function testConnection() {
+    setTestingConnection(true);
+    setConnectionError(null);
+    setJiraStatuses([]);
+    try {
+      const res = await fetch("/api/jira/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          baseUrl: jiraBaseUrl,
+          email: jiraEmail,
+          apiToken: jiraApiToken,
+          projectKey: jiraProjectKey,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Connection failed");
+      setJiraStatuses(data.statuses ?? []);
+      // Initialize statusMap — default each JIRA status to first matching local column or "Backlog"
+      const initialMap: Record<string, string> = {};
+      for (const s of (data.statuses ?? [])) {
+        const match = LOCAL_COLUMNS.find((c) => c.toLowerCase() === s.toLowerCase());
+        initialMap[s] = match ?? LOCAL_COLUMNS[0];
+      }
+      setJiraStatusMap(initialMap);
+    } catch (e: unknown) {
+      setConnectionError(e instanceof Error ? e.message : "Connection failed");
+    } finally {
+      setTestingConnection(false);
+    }
+  }
+
   function save() {
     setError(null);
     if (!key.trim() || !name.trim()) {
       setError("KEY and Name are required");
       return;
+    }
+    if (jiraEnabled) {
+      if (!jiraBaseUrl.trim() || !jiraEmail.trim() || !jiraApiToken.trim() || !jiraProjectKey.trim()) {
+        setError("All JIRA fields are required when connector is enabled");
+        return;
+      }
+      if (jiraStatuses.length === 0) {
+        setError("Run Test Connection before saving a JIRA project");
+        return;
+      }
     }
     start(async () => {
       try {
@@ -48,12 +116,19 @@ export function NewProjectModal({
           name: name.trim(),
           description: description.trim() || undefined,
           isDefault,
+          ...(jiraEnabled ? {
+            jiraBaseUrl: jiraBaseUrl.trim(),
+            jiraEmail: jiraEmail.trim(),
+            jiraApiToken: jiraApiToken.trim(),
+            jiraProjectKey: jiraProjectKey.trim().toUpperCase(),
+            jiraStatusMap,
+          } : {}),
         });
         onClose();
         router.push(`/projects/${res.key}/board`);
         router.refresh();
-      } catch (e: any) {
-        setError(e?.message ?? "Failed to create");
+      } catch (e: unknown) {
+        setError(e instanceof Error ? e.message : "Failed to create");
       }
     });
   }
@@ -81,6 +156,16 @@ export function NewProjectModal({
           </button>
         </div>
         <div className="space-y-3 p-6">
+          {/* JIRA toggle — above KEY field */}
+          <label className="flex items-center gap-2 text-sm text-zinc-700">
+            <input
+              type="checkbox"
+              checked={jiraEnabled}
+              onChange={(e) => handleJiraToggle(e.target.checked)}
+            />
+            Connect to JIRA
+          </label>
+
           <div>
             <label className="text-xs text-zinc-500">KEY</label>
             <input
@@ -121,6 +206,103 @@ export function NewProjectModal({
               <span className="text-xs text-zinc-500">(first project is always default)</span>
             )}
           </label>
+
+          {/* JIRA Connector section */}
+          {jiraEnabled && (
+            <div className="border-l-2 border-indigo-400 pl-4 space-y-3 pt-1">
+              <p className="text-xs font-medium text-indigo-700 uppercase tracking-wide">JIRA Connector</p>
+
+              <div>
+                <label className="text-xs text-zinc-500">Base URL</label>
+                <input
+                  value={jiraBaseUrl}
+                  onChange={(e) => setJiraBaseUrl(e.target.value)}
+                  placeholder="https://company.atlassian.net"
+                  className="mt-1 w-full rounded border border-zinc-300 bg-white px-3 py-2 text-zinc-900"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs text-zinc-500">Email</label>
+                <input
+                  type="email"
+                  value={jiraEmail}
+                  onChange={(e) => setJiraEmail(e.target.value)}
+                  placeholder="user@company.com"
+                  className="mt-1 w-full rounded border border-zinc-300 bg-white px-3 py-2 text-zinc-900"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs text-zinc-500">API Token</label>
+                <input
+                  type="password"
+                  value={jiraApiToken}
+                  onChange={(e) => setJiraApiToken(e.target.value)}
+                  placeholder="Your JIRA API token"
+                  className="mt-1 w-full rounded border border-zinc-300 bg-white px-3 py-2 text-zinc-900"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs text-zinc-500">Project Key</label>
+                <input
+                  value={jiraProjectKey}
+                  onChange={(e) => setJiraProjectKey(e.target.value.toUpperCase())}
+                  placeholder="PROJ"
+                  className="mt-1 w-full rounded border border-zinc-300 bg-white px-3 py-2 uppercase text-zinc-900"
+                />
+              </div>
+
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={testConnection}
+                  disabled={testingConnection || !jiraBaseUrl.trim() || !jiraEmail.trim() || !jiraApiToken.trim() || !jiraProjectKey.trim()}
+                  className="rounded bg-zinc-100 px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-200 disabled:opacity-50"
+                >
+                  {testingConnection ? "Testing…" : "Test Connection"}
+                </button>
+                {jiraStatuses.length > 0 && (
+                  <span className="text-green-600 text-xs">
+                    Connected — {jiraStatuses.length} status{jiraStatuses.length === 1 ? "" : "es"} found
+                  </span>
+                )}
+              </div>
+
+              {connectionError && (
+                <p className="text-red-600 text-sm">{connectionError}</p>
+              )}
+
+              {/* Status mapping */}
+              {jiraStatuses.length > 0 && (
+                <div className="space-y-2 pt-1">
+                  <p className="text-xs font-medium text-zinc-500">Status Mapping</p>
+                  {jiraStatuses.map((status) => (
+                    <div key={status} className="flex items-center gap-3">
+                      <span className="w-32 truncate text-sm text-zinc-700" title={status}>
+                        {status}
+                      </span>
+                      <span className="text-xs text-zinc-400">→</span>
+                      <select
+                        value={jiraStatusMap[status] ?? LOCAL_COLUMNS[0]}
+                        onChange={(e) =>
+                          setJiraStatusMap((prev) => ({ ...prev, [status]: e.target.value }))
+                        }
+                        className="flex-1 rounded border border-zinc-300 bg-white px-2 py-1 text-sm text-zinc-900"
+                      >
+                        {LOCAL_COLUMNS.map((col) => (
+                          <option key={col} value={col}>
+                            {col}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
         <div className="flex items-center justify-end gap-3 border-t border-zinc-200 px-6 py-3">
           {error && <span className="mr-auto text-sm text-red-600">{error}</span>}

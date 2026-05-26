@@ -11,6 +11,11 @@ const ProjectSchema = z.object({
   name: z.string().min(1),
   description: z.string().optional(),
   isDefault: z.boolean().optional(),
+  jiraBaseUrl: z.string().optional(),
+  jiraEmail: z.string().optional(),
+  jiraApiToken: z.string().optional(),
+  jiraProjectKey: z.string().optional(),
+  jiraStatusMap: z.record(z.string(), z.string()).optional(),
 });
 
 export async function createProject(input: z.infer<typeof ProjectSchema>) {
@@ -33,6 +38,11 @@ export async function createProject(input: z.infer<typeof ProjectSchema>) {
     description: data.description ?? null,
     isDefault: becomesDefault,
     rank,
+    jiraBaseUrl: data.jiraBaseUrl ?? null,
+    jiraEmail: data.jiraEmail ?? null,
+    jiraApiToken: data.jiraApiToken ?? null,
+    jiraProjectKey: data.jiraProjectKey ?? null,
+    jiraStatusMap: data.jiraStatusMap ?? null,
   });
   revalidatePath("/");
   return { id, key: data.key };

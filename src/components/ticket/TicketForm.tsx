@@ -29,7 +29,6 @@ type Draft = Pick<
   endDate: string;
   estimation: number | null;
   parentId: string | null;
-  epicId: string | null;
 };
 
 export function TicketForm({
@@ -43,7 +42,6 @@ export function TicketForm({
   parentTicket,
   childTickets,
   defaultParentId,
-  defaultEpicId,
   disableTypeChange,
   allTicketsForParent,
   hideChildren,
@@ -61,7 +59,6 @@ export function TicketForm({
   parentTicket?: Ticket | null;
   childTickets?: Ticket[];
   defaultParentId?: string | null;
-  defaultEpicId?: string | null;
   disableTypeChange?: boolean;
   allTicketsForParent?: Ticket[];
   hideChildren?: boolean;
@@ -86,7 +83,6 @@ export function TicketForm({
         endDate: toDateInput(ticket.endDate),
         estimation: ticket.estimation ?? null,
         parentId: ticket.parentId ?? null,
-        epicId: ticket.epicId ?? null,
       }
     : {
         title: "",
@@ -104,13 +100,12 @@ export function TicketForm({
         endDate: "",
         estimation: null,
         parentId: defaultParentId ?? null,
-        epicId: defaultEpicId ?? null,
       };
 
   const [t, setT] = useState<Draft>(initial);
   const [currentParent, setCurrentParent] = useState<Ticket | null>(() => {
     if (parentTicket) return parentTicket;
-    const lookupId = initial.parentId ?? ticket?.epicId ?? null;
+    const lookupId = initial.parentId ?? null;
     if (lookupId && allTicketsForParent) {
       return allTicketsForParent.find((tk) => tk.id === lookupId) ?? null;
     }
@@ -293,12 +288,12 @@ export function TicketForm({
                     onPaste={onPaste}
                     rows={12}
                     placeholder="Markdown supported. Paste image to embed. Use toolbar above."
-                    className="flex-1 min-h-[200px]"
+                    className="flex-1 min-h-[200px] max-h-[40vh]"
                   />
                 ) : (
                   <div
                     onClick={() => setDescMode("edit")}
-                    className="flex-1 min-h-[200px] overflow-y-auto cursor-text rounded border border-zinc-200 bg-white px-3 py-3 text-sm leading-relaxed text-zinc-800 [&_a]:text-indigo-600 [&_a]:underline [&_code]:rounded [&_code]:bg-zinc-100 [&_code]:px-1 [&_code]:py-0.5 [&_h1]:mt-2 [&_h1]:mb-2 [&_h1]:text-xl [&_h1]:font-semibold [&_h2]:mt-2 [&_h2]:mb-1 [&_h2]:text-lg [&_h2]:font-semibold [&_h3]:mt-2 [&_h3]:font-semibold [&_img]:my-2 [&_img]:max-w-full [&_img]:rounded [&_li]:my-0.5 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:my-2 [&_pre]:my-2 [&_pre]:overflow-x-auto [&_pre]:rounded [&_pre]:bg-zinc-100 [&_pre]:p-3 [&_ul]:list-disc [&_ul]:pl-5"
+                    className="flex-1 min-h-[200px] max-h-[40vh] overflow-y-auto cursor-text rounded border border-zinc-200 bg-white px-3 py-3 text-sm leading-relaxed text-zinc-800 [&_a]:text-indigo-600 [&_a]:underline [&_code]:rounded [&_code]:bg-zinc-100 [&_code]:px-1 [&_code]:py-0.5 [&_h1]:mt-2 [&_h1]:mb-2 [&_h1]:text-xl [&_h1]:font-semibold [&_h2]:mt-2 [&_h2]:mb-1 [&_h2]:text-lg [&_h2]:font-semibold [&_h3]:mt-2 [&_h3]:font-semibold [&_img]:my-2 [&_img]:max-w-full [&_img]:rounded [&_li]:my-0.5 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:my-2 [&_pre]:my-2 [&_pre]:overflow-x-auto [&_pre]:rounded [&_pre]:bg-zinc-100 [&_pre]:p-3 [&_ul]:list-disc [&_ul]:pl-5"
                   >
                     {t.description ? (
                       <ReactMarkdown

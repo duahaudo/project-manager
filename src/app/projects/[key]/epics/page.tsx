@@ -19,8 +19,8 @@ export default async function EpicsPage({
 
   const childCountByEpicId: Record<string, number> = {};
   for (const t of tickets) {
-    if (t.epicId) {
-      childCountByEpicId[t.epicId] = (childCountByEpicId[t.epicId] ?? 0) + 1;
+    if (t.parentId) {
+      childCountByEpicId[t.parentId] = (childCountByEpicId[t.parentId] ?? 0) + 1;
     }
   }
 

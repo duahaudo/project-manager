@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { getProjectByKey } from "@/lib/actions/projects";
-import { listTicketsByProject, listEpicTicketsByProject } from "@/lib/actions/tickets";
+import { listTicketsByProjectWithJira, listEpicTicketsByProject } from "@/lib/actions/tickets";
+import { getJiraConfig } from "@/lib/db/schema";
 import { type FilterDef } from "@/components/board/Filters";
 import { BacklogClient } from "@/components/backlog/BacklogClient";
 
@@ -35,12 +36,21 @@ export default async function BacklogPage({
   const project = await getProjectByKey(key);
   if (!project) notFound();
 
-  const all = await listTicketsByProject(project.id);
+  const jiraConfig = getJiraConfig(project);
+  const all = await listTicketsByProjectWithJira(project);
   const epics = await listEpicTicketsByProject(project.id);
+
+  // For JIRA projects, derive statuses from fetched ticket data
+  const effectiveStatuses = jiraConfig
+    ? Array.from(new Set(all.map((t) => t.status)))
+    : project.statuses;
+  const effectiveProject = jiraConfig
+    ? { ...project, statuses: effectiveStatuses }
+    : project;
 
   const defs: FilterDef[] = [
     { key: "epic", label: "Epic", options: epics.map((e) => ({ value: e.id, label: e.title })) },
-    { key: "status", label: "Status", options: project.statuses.map((s) => ({ value: s, label: s })) },
+    { key: "status", label: "Status", options: effectiveProject.statuses.map((s) => ({ value: s, label: s })) },
     { key: "type", label: "Type", options: TYPE_OPTS },
     { key: "priority", label: "Priority", options: PRIORITY_OPTS },
     { key: "phase", label: "Phase", options: uniq(all.map((t) => t.phase)).map((v) => ({ value: v, label: v })) },

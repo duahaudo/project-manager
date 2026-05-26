@@ -17,7 +17,6 @@ export function TicketModal({
   allTickets,
   childTickets,
   defaultParentId,
-  defaultEpicId,
   allTicketsForParent,
   onClose,
 }: {
@@ -30,7 +29,6 @@ export function TicketModal({
   allTickets?: Ticket[];
   childTickets?: Ticket[];
   defaultParentId?: string;
-  defaultEpicId?: string;
   allTicketsForParent?: Ticket[];
   onClose: () => void;
 }) {
@@ -56,14 +54,14 @@ export function TicketModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-zinc-900/40 p-4 sm:p-8"
+      className="fixed inset-0 z-50 flex items-start justify-center bg-zinc-900/40 p-4 sm:p-8"
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-5xl rounded-lg border border-zinc-200 bg-white shadow-2xl"
+        className="relative flex max-h-[90vh] w-full max-w-5xl flex-col rounded-lg border border-zinc-200 bg-white shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="sticky top-0 z-10 flex items-center justify-between rounded-t-lg border-b border-zinc-200 bg-white px-6 py-3">
+        <div className="flex shrink-0 items-center justify-between rounded-t-lg border-b border-zinc-200 bg-white px-6 py-3">
           <div className="flex items-center gap-2">
             <h2 className="text-base font-semibold text-zinc-900">
               {mode === "create" ? "New Ticket" : "Edit "}
@@ -102,7 +100,7 @@ export function TicketModal({
             </svg>
           </button>
         </div>
-        <div className="p-6">
+        <div className="min-h-0 flex-1 overflow-y-auto p-6">
           <TicketForm
             mode={mode}
             ticket={ticket}
@@ -112,7 +110,6 @@ export function TicketModal({
             fieldValues={fieldValues}
             allTickets={allTickets}
             defaultParentId={defaultParentId}
-            defaultEpicId={defaultEpicId}
             allTicketsForParent={allTicketsForParent}
             childTickets={resolvedChildTickets}
             onClose={onClose}

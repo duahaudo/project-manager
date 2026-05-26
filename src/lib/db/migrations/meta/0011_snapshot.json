@@ -1,8 +1,8 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "cc22dd33-ee44-ff55-0011-223344556677",
-  "prevId": "bb11cc22-dd33-ee44-ff55-001122334455",
+  "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "prevId": "dd33ee44-ff55-0011-2233-445566778899",
   "tables": {
     "comments": {
       "name": "comments",
@@ -50,86 +50,8 @@
           "name": "comments_ticket_id_tickets_id_fk",
           "tableFrom": "comments",
           "tableTo": "tickets",
-          "columnsFrom": [
-            "ticket_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "checkConstraints": {}
-    },
-    "epics": {
-      "name": "epics",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "project_id": {
-          "name": "project_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "title": {
-          "name": "title",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "description": {
-          "name": "description",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "brd_ref": {
-          "name": "brd_ref",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "tech_spec_ref": {
-          "name": "tech_spec_ref",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "(unixepoch())"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "epics_project_id_projects_id_fk": {
-          "name": "epics_project_id_projects_id_fk",
-          "tableFrom": "epics",
-          "tableTo": "projects",
-          "columnsFrom": [
-            "project_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["ticket_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -175,7 +97,7 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
-          "default": "'[\"Backlog\",\"To Do\",\"In Progress\",\"In Review\",\"Done\"]'"
+          "default": "'[\"Backlog\",\"To Do\",\"In Progress\",\"In Review\",\"Done\",\"Cancelled\"]'"
         },
         "ticket_counter": {
           "name": "ticket_counter",
@@ -185,6 +107,22 @@
           "autoincrement": false,
           "default": 0
         },
+        "is_default": {
+          "name": "is_default",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
+        },
+        "rank": {
+          "name": "rank",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "''"
+        },
         "created_at": {
           "name": "created_at",
           "type": "integer",
@@ -192,14 +130,47 @@
           "notNull": true,
           "autoincrement": false,
           "default": "(unixepoch())"
+        },
+        "jira_base_url": {
+          "name": "jira_base_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "jira_email": {
+          "name": "jira_email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "jira_api_token": {
+          "name": "jira_api_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "jira_project_key": {
+          "name": "jira_project_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "jira_status_map": {
+          "name": "jira_status_map",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
         }
       },
       "indexes": {
         "projects_key_unique": {
           "name": "projects_key_unique",
-          "columns": [
-            "key"
-          ],
+          "columns": ["key"],
           "isUnique": true
         }
       },
@@ -246,6 +217,14 @@
           "notNull": false,
           "autoincrement": false
         },
+        "related_ids": {
+          "name": "related_ids",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'[]'"
+        },
         "title": {
           "name": "title",
           "type": "text",
@@ -284,20 +263,6 @@
           "autoincrement": false,
           "default": "'med'"
         },
-        "assignee": {
-          "name": "assignee",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "reporter": {
-          "name": "reporter",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
         "labels": {
           "name": "labels",
           "type": "text",
@@ -327,6 +292,20 @@
           "notNull": false,
           "autoincrement": false
         },
+        "milestone": {
+          "name": "milestone",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "phase": {
+          "name": "phase",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "components": {
           "name": "components",
           "type": "text",
@@ -342,9 +321,44 @@
           "notNull": true,
           "autoincrement": false
         },
+        "start_date": {
+          "name": "start_date",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "end_date": {
+          "name": "end_date",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "estimation": {
+          "name": "estimation",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "due_date": {
           "name": "due_date",
           "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "brd_ref": {
+          "name": "brd_ref",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "tech_spec_ref": {
+          "name": "tech_spec_ref",
+          "type": "text",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
@@ -369,10 +383,28 @@
       "indexes": {
         "tickets_key_unique": {
           "name": "tickets_key_unique",
-          "columns": [
-            "key"
-          ],
+          "columns": ["key"],
           "isUnique": true
+        },
+        "tickets_project_id_idx": {
+          "name": "tickets_project_id_idx",
+          "columns": ["project_id"],
+          "isUnique": false
+        },
+        "tickets_project_status_idx": {
+          "name": "tickets_project_status_idx",
+          "columns": ["project_id", "status"],
+          "isUnique": false
+        },
+        "tickets_rank_idx": {
+          "name": "tickets_rank_idx",
+          "columns": ["rank"],
+          "isUnique": false
+        },
+        "tickets_parent_id_idx": {
+          "name": "tickets_parent_id_idx",
+          "columns": ["parent_id"],
+          "isUnique": false
         }
       },
       "foreignKeys": {
@@ -380,25 +412,26 @@
           "name": "tickets_project_id_projects_id_fk",
           "tableFrom": "tickets",
           "tableTo": "projects",
-          "columnsFrom": [
-            "project_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["project_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "tickets_epic_id_epics_id_fk": {
-          "name": "tickets_epic_id_epics_id_fk",
+        "tickets_epic_id_tickets_id_fk": {
+          "name": "tickets_epic_id_tickets_id_fk",
           "tableFrom": "tickets",
-          "tableTo": "epics",
-          "columnsFrom": [
-            "epic_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "tableTo": "tickets",
+          "columnsFrom": ["epic_id"],
+          "columnsTo": ["id"],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "tickets_parent_id_tickets_id_fk": {
+          "name": "tickets_parent_id_tickets_id_fk",
+          "tableFrom": "tickets",
+          "tableTo": "tickets",
+          "columnsFrom": ["parent_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }

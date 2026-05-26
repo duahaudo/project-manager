@@ -107,7 +107,7 @@ export function BacklogClient({
       const statuses = getVals("status");
       const priorities = getVals("priority");
       const types = getVals("type");
-      if (epics.length && !epics.includes(t.epicId ?? "")) return false;
+      if (epics.length && !epics.includes(t.parentId ?? "")) return false;
       if (phases.length && !phases.includes(t.phase ?? "")) return false;
       if (milestones.length && !milestones.includes(t.milestone ?? "")) return false;
       if (sprints.length && !sprints.includes(t.sprint ?? "")) return false;
