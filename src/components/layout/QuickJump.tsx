@@ -125,7 +125,7 @@ export function QuickJump({ currentProjectKey }: { currentProjectKey: string }) 
         onChange={(e) => setQuery(e.target.value)}
         onKeyDown={handleKeyDown}
         onFocus={() => results.length > 0 && setOpen(true)}
-        placeholder="Jump to ticket… (e.g. PML-42)"
+        placeholder="Jump to ticket…"
         className="w-full rounded-md border border-zinc-300 bg-zinc-50 px-3 py-1.5 text-xs text-zinc-800 placeholder-zinc-400 outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-300"
       />
       {open && results.length > 0 && (
