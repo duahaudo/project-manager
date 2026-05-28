@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getProjectByKey } from "@/lib/actions/projects";
 import { listFieldValues } from "@/lib/actions/tickets";
 import { NewTicketButton } from "@/components/ticket/NewTicketButton";
+import { QuickJump } from "@/components/layout/QuickJump";
 
 export default async function ProjectLayout({
   children,
@@ -28,7 +29,10 @@ export default async function ProjectLayout({
             <span className="font-mono text-indigo-600">{project.key}</span>{" "}
             <span className="text-zinc-400">·</span> {project.name}
           </h1>
-          <nav className="ml-auto flex items-center gap-3 text-sm">
+          <div className="flex flex-1 justify-center">
+            <QuickJump currentProjectKey={project.key} />
+          </div>
+          <nav className="flex items-center gap-3 text-sm">
             <NewTicketButton
               projectId={project.id}
               projectKey={project.key}

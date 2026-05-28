@@ -1,6 +1,6 @@
 "use server";
 import { db, schema } from "@/lib/db/client";
-import { and, asc, desc, eq, ne } from "drizzle-orm";
+import { and, asc, desc, eq, like, ne, or } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { uid } from "@/lib/utils";
 import { midpoint, initialRank } from "@/lib/rank";
@@ -353,6 +353,24 @@ export async function listTicketsByProject(projectId: string) {
 export async function getTicketByKey(key: string) {
   const rows = await db.select().from(schema.tickets).where(eq(schema.tickets.key, key)).limit(1);
   return rows[0] ?? null;
+}
+
+export async function searchTicketsGlobal(query: string, limit = 10) {
+  if (!query.trim()) return [];
+  const q = `%${query.trim()}%`;
+  return db
+    .select({
+      id: schema.tickets.id,
+      key: schema.tickets.key,
+      title: schema.tickets.title,
+      type: schema.tickets.type,
+      status: schema.tickets.status,
+      priority: schema.tickets.priority,
+    })
+    .from(schema.tickets)
+    .where(or(like(schema.tickets.key, q), like(schema.tickets.title, q)))
+    .orderBy(asc(schema.tickets.key))
+    .limit(limit);
 }
 
 export async function listFieldValues(
