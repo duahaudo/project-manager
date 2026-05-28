@@ -76,8 +76,7 @@ export function ParentSection({
 
   return (
     <div className="space-y-1">
-      <label className="text-xs text-zinc-500">Parent</label>
-      <div className="relative mt-1 flex items-center gap-2">
+      <div className="relative flex items-center gap-2">
         {parentTicket ? (
           <span className="inline-flex items-center gap-1 rounded border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-xs">
             {/* Clicking the key opens the ticket detail modal */}
@@ -166,7 +165,7 @@ export function ParentSection({
           projectKey={projectKey}
           statuses={statuses}
           fieldValues={fieldValues}
-          allTickets={[]}
+          allTickets={allTickets}
           allTicketsForParent={allTickets}
           onClose={() => setShowTicketModal(false)}
         />

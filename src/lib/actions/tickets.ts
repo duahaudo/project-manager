@@ -64,14 +64,26 @@ export async function createTicket(input: z.infer<typeof TicketCreateSchema>) {
   const key = `${proj.key}-${nextNum}`;
   const status = data.status ?? (proj.statuses[0] ?? "Backlog");
 
-  // bottom rank in target column
-  const last = await db
-    .select()
-    .from(schema.tickets)
-    .where(and(eq(schema.tickets.projectId, data.projectId), eq(schema.tickets.status, status)))
-    .orderBy(desc(schema.tickets.rank))
-    .limit(1);
-  const rank = last[0] ? midpoint(last[0].rank, null) : initialRank();
+  let rank: string;
+  if (data.parentId) {
+    // New child appears at top: rank before first sibling
+    const firstSibling = await db
+      .select({ rank: schema.tickets.rank })
+      .from(schema.tickets)
+      .where(eq(schema.tickets.parentId, data.parentId))
+      .orderBy(asc(schema.tickets.rank))
+      .limit(1);
+    rank = firstSibling[0] ? midpoint(null, firstSibling[0].rank) : initialRank();
+  } else {
+    // Bottom rank in target status column
+    const last = await db
+      .select({ rank: schema.tickets.rank })
+      .from(schema.tickets)
+      .where(and(eq(schema.tickets.projectId, data.projectId), eq(schema.tickets.status, status)))
+      .orderBy(desc(schema.tickets.rank))
+      .limit(1);
+    rank = last[0] ? midpoint(last[0].rank, null) : initialRank();
+  }
 
   const id = uid();
   await db.insert(schema.tickets).values({
