@@ -83,6 +83,11 @@ export function QuickJump({ currentProjectKey }: { currentProjectKey: string }) 
         navigate(exact.key);
         return;
       }
+      // No active selection → navigate first result
+      if (results.length > 0) {
+        navigate(results[0].key);
+        return;
+      }
       // If looks like a ticket key pattern (e.g. PML-12), try direct nav
       if (/^[A-Z]+-\d+$/i.test(query.trim())) {
         const key = query.trim().toUpperCase();
