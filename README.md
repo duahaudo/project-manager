@@ -4,6 +4,12 @@ Local-first JIRA-lite for solo developers and AI-driven workflows. Runs entirely
 
 Designed so an AI agent (Claude Code, Cursor, etc.) can read a BRD or tech spec, parse it into epics + tickets, and POST them to a local REST API. You then drag tickets across a kanban board to manage status.
 
+## Screenshots
+
+| Kanban board | Epic with linked children |
+|---|---|
+| ![Board](docs/screenshots/board.png) | ![Epic detail](docs/screenshots/epic-detail.png) |
+
 ## Stack
 
 - **Next.js 16** (App Router, Webpack — Turbopack disabled due to a Node-subprocess issue with nvm-managed Node)
