@@ -20917,6 +20917,7 @@ function drizzle(...params) {
 var schema_exports = {};
 __export(schema_exports, {
   comments: () => comments,
+  getJiraConfig: () => getJiraConfig,
   projects: () => projects,
   tickets: () => tickets
 });
@@ -20929,13 +20930,17 @@ var projects = sqliteTable("projects", {
   ticketCounter: integer2("ticket_counter").notNull().default(0),
   isDefault: integer2("is_default", { mode: "boolean" }).notNull().default(false),
   rank: text("rank").notNull().default(""),
-  createdAt: integer2("created_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`)
+  createdAt: integer2("created_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
+  jiraBaseUrl: text("jira_base_url"),
+  jiraEmail: text("jira_email"),
+  jiraApiToken: text("jira_api_token"),
+  jiraProjectKey: text("jira_project_key"),
+  jiraStatusMap: text("jira_status_map", { mode: "json" }).$type()
 });
 var tickets = sqliteTable("tickets", {
   id: text("id").primaryKey(),
   key: text("key").notNull().unique(),
   projectId: text("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
-  epicId: text("epic_id").references(() => tickets.id, { onDelete: "set null" }),
   parentId: text("parent_id").references(() => tickets.id, { onDelete: "set null" }),
   relatedIds: text("related_ids", { mode: "json" }).notNull().$type().default(sql`'[]'`),
   title: text("title").notNull(),
@@ -20974,10 +20979,20 @@ var comments = sqliteTable("comments", {
   body: text("body").notNull(),
   createdAt: integer2("created_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`)
 });
+function getJiraConfig(project) {
+  if (!project.jiraBaseUrl || !project.jiraEmail || !project.jiraApiToken || !project.jiraProjectKey) {
+    return null;
+  }
+  return {
+    baseUrl: project.jiraBaseUrl,
+    email: project.jiraEmail,
+    apiToken: project.jiraApiToken,
+    projectKey: project.jiraProjectKey,
+    statusMap: project.jiraStatusMap ?? {}
+  };
+}
 
 // src/lib/rank.ts
-var MIN = "0";
-var MAX = "z";
 function charToNum(c) {
   const code = c.charCodeAt(0);
   if (code >= 48 && code <= 57) return code - 48;
@@ -20989,22 +21004,21 @@ function numToChar(n) {
   return String.fromCharCode(97 + (n - 10));
 }
 function midpoint(a, b) {
-  const left = a ?? MIN.repeat(1);
-  const right = b ?? MAX.repeat(1);
-  const max = Math.max(left.length, right.length) + 1;
-  let result = "";
-  let carry = 0;
-  for (let i = 0; i < max; i++) {
+  if (a === null && b === null) return "m";
+  if (b === null) return a + "m";
+  const left = a ?? "0";
+  const right = b;
+  for (let i = 0; ; i++) {
     const l = i < left.length ? charToNum(left[i]) : 0;
-    const r = i < right.length ? charToNum(right[i]) : 35;
-    const sum = l + r + carry;
-    const half = Math.floor(sum / 2);
-    carry = sum % 2 * 36;
-    result += numToChar(half);
-    if (carry === 0 && result > left && result < right) break;
+    const r = i < right.length ? charToNum(right[i]) : 36;
+    if (l === r) continue;
+    const mid = Math.floor((l + r) / 2);
+    if (mid > l) {
+      return left.slice(0, i) + numToChar(mid);
+    }
+    const suffix = midpoint(left.slice(i + 1) || null, null);
+    return left.slice(0, i + 1) + suffix;
   }
-  if (result <= left) result = left + "m";
-  return result;
 }
 function initialRank() {
   return "m";
@@ -21012,11 +21026,8 @@ function initialRank() {
 
 // mcp/server.ts
 var import_node_path = __toESM(require("node:path"));
-var import_node_url = require("node:url");
 var import_node_crypto = require("node:crypto");
-var import_meta = {};
-var __dirname = import_node_path.default.dirname((0, import_node_url.fileURLToPath)(import_meta.url));
-var DB_PATH = import_node_path.default.join(__dirname, "..", "data", "app.db");
+var DB_PATH = process.env.DB_PATH ?? import_node_path.default.join(process.cwd(), "data", "app.db");
 var sqlite = new import_better_sqlite32.default(DB_PATH);
 sqlite.pragma("journal_mode = WAL");
 sqlite.pragma("foreign_keys = ON");
@@ -21095,8 +21106,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
             description: "Priority level"
           },
           status: { type: "string", description: "Initial status (defaults to first project status)" },
-          epicId: { type: "string", description: "Epic ticket ID to link this ticket to" },
-          parentId: { type: "string", description: "Parent ticket ID (for tasks under a story)" },
+          parentId: { type: "string", description: "Parent ticket ID (for tasks under a story or children of an epic)" },
           storyPoints: { type: "number", description: "Story points estimate" },
           sprint: { type: "string", description: "Sprint name" },
           milestone: { type: "string", description: "Milestone name" },
@@ -21127,7 +21137,6 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
           milestone: { type: "string", description: "Milestone name" },
           phase: { type: "string", description: "Phase name" },
           labels: { type: "array", items: { type: "string" } },
-          epicId: { type: "string", description: "Epic ticket ID" },
           parentId: { type: "string", description: "Parent ticket ID" }
         }
       }
@@ -21230,7 +21239,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                   milestone: t.milestone,
                   phase: t.phase,
                   labels: t.labels,
-                  epicId: t.epicId,
                   parentId: t.parentId,
                   description: t.description,
                   createdAt: t.createdAt,
@@ -21252,7 +21260,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         type = "task",
         priority = "med",
         status,
-        epicId,
         parentId,
         storyPoints,
         sprint,
@@ -21279,26 +21286,27 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       ).orderBy(desc(tickets.rank)).limit(1);
       const rank = last[0] ? midpoint(last[0].rank, null) : initialRank();
       const id = (0, import_node_crypto.randomUUID)();
-      await db.insert(tickets).values({
-        id,
-        key,
-        projectId: project.id,
-        title,
-        description: description ?? null,
-        type,
-        priority,
-        status: ticketStatus,
-        epicId: epicId ?? null,
-        parentId: parentId ?? null,
-        storyPoints: storyPoints ?? null,
-        sprint: sprint ?? null,
-        milestone: milestone ?? null,
-        phase: phase ?? null,
-        labels: labels ?? [],
-        relatedIds: [],
-        rank
+      db.transaction((tx) => {
+        tx.insert(tickets).values({
+          id,
+          key,
+          projectId: project.id,
+          title,
+          description: description ?? null,
+          type,
+          priority,
+          status: ticketStatus,
+          parentId: parentId ?? null,
+          storyPoints: storyPoints ?? null,
+          sprint: sprint ?? null,
+          milestone: milestone ?? null,
+          phase: phase ?? null,
+          labels: labels ?? [],
+          relatedIds: [],
+          rank
+        }).run();
+        tx.update(projects).set({ ticketCounter: nextNum }).where(eq(projects.id, project.id)).run();
       });
-      await db.update(projects).set({ ticketCounter: nextNum }).where(eq(projects.id, project.id));
       return {
         content: [
           {
@@ -21328,7 +21336,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       if (fields.milestone !== void 0) updates.milestone = fields.milestone;
       if (fields.phase !== void 0) updates.phase = fields.phase;
       if (fields.labels !== void 0) updates.labels = fields.labels;
-      if (fields.epicId !== void 0) updates.epicId = fields.epicId;
       if (fields.parentId !== void 0) updates.parentId = fields.parentId;
       await db.update(tickets).set(updates).where(eq(tickets.id, existing[0].id));
       return {

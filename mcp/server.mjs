@@ -20916,6 +20916,7 @@ function drizzle(...params) {
 var schema_exports = {};
 __export(schema_exports, {
   comments: () => comments,
+  getJiraConfig: () => getJiraConfig,
   projects: () => projects,
   tickets: () => tickets
 });
@@ -20928,13 +20929,17 @@ var projects = sqliteTable("projects", {
   ticketCounter: integer2("ticket_counter").notNull().default(0),
   isDefault: integer2("is_default", { mode: "boolean" }).notNull().default(false),
   rank: text("rank").notNull().default(""),
-  createdAt: integer2("created_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`)
+  createdAt: integer2("created_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
+  jiraBaseUrl: text("jira_base_url"),
+  jiraEmail: text("jira_email"),
+  jiraApiToken: text("jira_api_token"),
+  jiraProjectKey: text("jira_project_key"),
+  jiraStatusMap: text("jira_status_map", { mode: "json" }).$type()
 });
 var tickets = sqliteTable("tickets", {
   id: text("id").primaryKey(),
   key: text("key").notNull().unique(),
   projectId: text("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
-  epicId: text("epic_id").references(() => tickets.id, { onDelete: "set null" }),
   parentId: text("parent_id").references(() => tickets.id, { onDelete: "set null" }),
   relatedIds: text("related_ids", { mode: "json" }).notNull().$type().default(sql`'[]'`),
   title: text("title").notNull(),
@@ -20973,6 +20978,18 @@ var comments = sqliteTable("comments", {
   body: text("body").notNull(),
   createdAt: integer2("created_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`)
 });
+function getJiraConfig(project) {
+  if (!project.jiraBaseUrl || !project.jiraEmail || !project.jiraApiToken || !project.jiraProjectKey) {
+    return null;
+  }
+  return {
+    baseUrl: project.jiraBaseUrl,
+    email: project.jiraEmail,
+    apiToken: project.jiraApiToken,
+    projectKey: project.jiraProjectKey,
+    statusMap: project.jiraStatusMap ?? {}
+  };
+}
 
 // src/lib/rank.ts
 function charToNum(c) {
@@ -21088,8 +21105,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
             description: "Priority level"
           },
           status: { type: "string", description: "Initial status (defaults to first project status)" },
-          epicId: { type: "string", description: "Epic ticket ID to link this ticket to" },
-          parentId: { type: "string", description: "Parent ticket ID (for tasks under a story)" },
+          parentId: { type: "string", description: "Parent ticket ID (for tasks under a story or children of an epic)" },
           storyPoints: { type: "number", description: "Story points estimate" },
           sprint: { type: "string", description: "Sprint name" },
           milestone: { type: "string", description: "Milestone name" },
@@ -21120,7 +21136,6 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
           milestone: { type: "string", description: "Milestone name" },
           phase: { type: "string", description: "Phase name" },
           labels: { type: "array", items: { type: "string" } },
-          epicId: { type: "string", description: "Epic ticket ID" },
           parentId: { type: "string", description: "Parent ticket ID" }
         }
       }
@@ -21223,7 +21238,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                   milestone: t.milestone,
                   phase: t.phase,
                   labels: t.labels,
-                  epicId: t.epicId,
                   parentId: t.parentId,
                   description: t.description,
                   createdAt: t.createdAt,
@@ -21245,7 +21259,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         type = "task",
         priority = "med",
         status,
-        epicId,
         parentId,
         storyPoints,
         sprint,
@@ -21272,26 +21285,27 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       ).orderBy(desc(tickets.rank)).limit(1);
       const rank = last[0] ? midpoint(last[0].rank, null) : initialRank();
       const id = randomUUID();
-      await db.insert(tickets).values({
-        id,
-        key,
-        projectId: project.id,
-        title,
-        description: description ?? null,
-        type,
-        priority,
-        status: ticketStatus,
-        epicId: epicId ?? null,
-        parentId: parentId ?? null,
-        storyPoints: storyPoints ?? null,
-        sprint: sprint ?? null,
-        milestone: milestone ?? null,
-        phase: phase ?? null,
-        labels: labels ?? [],
-        relatedIds: [],
-        rank
+      db.transaction((tx) => {
+        tx.insert(tickets).values({
+          id,
+          key,
+          projectId: project.id,
+          title,
+          description: description ?? null,
+          type,
+          priority,
+          status: ticketStatus,
+          parentId: parentId ?? null,
+          storyPoints: storyPoints ?? null,
+          sprint: sprint ?? null,
+          milestone: milestone ?? null,
+          phase: phase ?? null,
+          labels: labels ?? [],
+          relatedIds: [],
+          rank
+        }).run();
+        tx.update(projects).set({ ticketCounter: nextNum }).where(eq(projects.id, project.id)).run();
       });
-      await db.update(projects).set({ ticketCounter: nextNum }).where(eq(projects.id, project.id));
       return {
         content: [
           {
@@ -21321,7 +21335,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       if (fields.milestone !== void 0) updates.milestone = fields.milestone;
       if (fields.phase !== void 0) updates.phase = fields.phase;
       if (fields.labels !== void 0) updates.labels = fields.labels;
-      if (fields.epicId !== void 0) updates.epicId = fields.epicId;
       if (fields.parentId !== void 0) updates.parentId = fields.parentId;
       await db.update(tickets).set(updates).where(eq(tickets.id, existing[0].id));
       return {
