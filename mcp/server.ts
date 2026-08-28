@@ -335,8 +335,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       const rank = last[0] ? midpoint(last[0].rank, null) : initialRank();
 
       const id = randomUUID();
-      await db.transaction(async (tx) => {
-        await tx.insert(schema.tickets).values({
+      db.transaction((tx) => {
+        tx.insert(schema.tickets).values({
           id,
           key,
           projectId: project.id,
@@ -353,12 +353,12 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           labels: labels ?? [],
           relatedIds: [],
           rank,
-        });
+        }).run();
 
-        await tx
-          .update(schema.projects)
+        tx.update(schema.projects)
           .set({ ticketCounter: nextNum })
-          .where(eq(schema.projects.id, project.id));
+          .where(eq(schema.projects.id, project.id))
+          .run();
       });
 
       return {
