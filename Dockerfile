@@ -11,7 +11,7 @@ FROM base AS builder
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN pnpm build
-RUN ./node_modules/.bin/esbuild mcp/server.ts --bundle --platform=node --format=esm --external:better-sqlite3 --outfile=mcp/server.mjs
+RUN pnpm mcp:build
 
 FROM base AS runner
 WORKDIR /app

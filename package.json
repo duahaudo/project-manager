@@ -10,6 +10,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/lib/db/migrate.ts",
     "db:seed": "tsx src/lib/db/seed.ts",
+    "mcp:build": "esbuild mcp/server.ts --bundle --platform=node --external:better-sqlite3 --format=esm --outfile=mcp/server.mjs && esbuild mcp/server.ts --bundle --platform=node --external:better-sqlite3 --format=cjs --outfile=mcp/server.cjs",
     "mcp:start": "tsx mcp/server.ts"
   },
   "dependencies": {
@@ -41,6 +42,7 @@
     "@types/react-dom": "^19",
     "babel-plugin-react-compiler": "1.0.0",
     "drizzle-kit": "^0.31.10",
+    "esbuild": "^0.25.12",
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
     "tailwindcss": "^4",
